@@ -35,40 +35,35 @@ HMassConstraint::HMassConstraint(
 
 
 void HMassConstraint::constructVariables(){
+  const Double_t pi_val = 3.14159265358979323846;//TMath::Pi();
+  const Double_t piovertwo_val = pi_val/2.;
+
   RooArgList m12_args;
   for (int iZ=0; iZ<2; iZ++){
     RooArgList mHdaughter_args;
     for (int iferm=0; iferm<2; iferm++){
       pT_ferm[iZ][iferm] = new RooRealVar(Form("pTRefit_Z%iFermion%i", iZ+1, iferm+1), "", 0., 0., sqrts);
-      lambda_ferm[iZ][iferm] = new RooRealVar(Form("pTRefit_Z%iFermion%i", iZ+1, iferm+1), "", 0., 0., sqrts);
-      phi_ferm[iZ][iferm] = new RooRealVar(Form("pTRefit_Z%iFermion%i", iZ+1, iferm+1), "", 0., 0., sqrts);
+      lambda_ferm[iZ][iferm] = new RooRealVar(Form("pTRefit_Z%iFermion%i", iZ+1, iferm+1), "", -piovertwo_val, piovertwo_val);
+      phi_ferm[iZ][iferm] = new RooRealVar(Form("pTRefit_Z%iFermion%i", iZ+1, iferm+1), "", -pi_val, pi_val);
       massbar_ferm[iZ][iferm] = new RooRealVar(Form("mass_Z%iFermion%i", iZ+1, iferm+1), "", 0., -sqrts, sqrts);
       pTbar_ferm[iZ][iferm] = new RooRealVar(Form("pTRefit_Z%iFermion%i", iZ+1, iferm+1), "", 0., 0., sqrts);
-      lambdabar_ferm[iZ][iferm] = new RooRealVar(Form("pTRefit_Z%iFermion%i", iZ+1, iferm+1), "", 0., 0., sqrts);
-      phibar_ferm[iZ][iferm] = new RooRealVar(Form("pTRefit_Z%iFermion%i", iZ+1, iferm+1), "", 0., 0., sqrts);
+      lambdabar_ferm[iZ][iferm] = new RooRealVar(Form("pTRefit_Z%iFermion%i", iZ+1, iferm+1), "", -piovertwo_val, piovertwo_val);
+      phibar_ferm[iZ][iferm] = new RooRealVar(Form("pTRefit_Z%iFermion%i", iZ+1, iferm+1), "", -pi_val, pi_val);
 
       pT_fsr[iZ][iferm] = new RooRealVar(Form("pTRefit_Z%iFermion%iFSR", iZ+1, iferm+1), "", 0., 0., sqrts);
-      lambda_fsr[iZ][iferm] = new RooRealVar(Form("pTRefit_Z%iFermion%iFSR", iZ+1, iferm+1), "", 0., 0., sqrts);
-      phi_fsr[iZ][iferm] = new RooRealVar(Form("pTRefit_Z%iFermion%iFSR", iZ+1, iferm+1), "", 0., 0., sqrts);
+      lambda_fsr[iZ][iferm] = new RooRealVar(Form("pTRefit_Z%iFermion%iFSR", iZ+1, iferm+1), "", -piovertwo_val, piovertwo_val);
+      phi_fsr[iZ][iferm] = new RooRealVar(Form("pTRefit_Z%iFermion%iFSR", iZ+1, iferm+1), "", -pi_val, pi_val);
       pTbar_fsr[iZ][iferm] = new RooRealVar(Form("pTRefit_Z%iFermion%iFSR", iZ+1, iferm+1), "", 0., 0., sqrts);
-      lambdabar_fsr[iZ][iferm] = new RooRealVar(Form("pTRefit_Z%iFermion%iFSR", iZ+1, iferm+1), "", 0., 0., sqrts);
-      phibar_fsr[iZ][iferm] = new RooRealVar(Form("pTRefit_Z%iFermion%iFSR", iZ+1, iferm+1), "", 0., 0., sqrts);
+      lambdabar_fsr[iZ][iferm] = new RooRealVar(Form("pTRefit_Z%iFermion%iFSR", iZ+1, iferm+1), "", -piovertwo_val, piovertwo_val);
+      phibar_fsr[iZ][iferm] = new RooRealVar(Form("pTRefit_Z%iFermion%iFSR", iZ+1, iferm+1), "", -pi_val, pi_val);
 
       massbar_ferm[iZ][iferm]->removeMin();
       massbar_ferm[iZ][iferm]->removeMax();
 
       pT_ferm[iZ][iferm]->removeMax();
-      lambda_ferm[iZ][iferm]->removeMax();
-      phi_ferm[iZ][iferm]->removeMax();
       pTbar_ferm[iZ][iferm]->removeMax();
-      lambdabar_ferm[iZ][iferm]->removeMax();
-      phibar_ferm[iZ][iferm]->removeMax();
       pT_fsr[iZ][iferm]->removeMax();
-      lambda_fsr[iZ][iferm]->removeMax();
-      phi_fsr[iZ][iferm]->removeMax();
       pTbar_fsr[iZ][iferm]->removeMax();
-      lambdabar_fsr[iZ][iferm]->removeMax();
-      phibar_fsr[iZ][iferm]->removeMax();
 
       E_ferm[iZ][iferm] = new RooFormulaVar(Form("ERefit_Z%iFermion%i", iZ+1, iferm+1), "sqrt( pow(@0,2)+pow(@1/cos(@2),2) )", RooArgList(*(massbar_ferm[iZ][iferm]), *(pT_ferm[iZ][iferm]), *(lambda_ferm[iZ][iferm])));
       px_ferm[iZ][iferm] = new RooFormulaVar(Form("pxRefit_Z%iFermion%i", iZ+1, iferm+1), "(@0*cos(@1))", RooArgList(*(pT_ferm[iZ][iferm]), *(phi_ferm[iZ][iferm])));
@@ -82,7 +77,7 @@ void HMassConstraint::constructVariables(){
       px_Hdaughter[iZ][iferm] = new RooFormulaVar(Form("pxRefit_Z%iFermion%i", iZ+1, iferm+1), "(@0+@1)", RooArgList(*(px_ferm[iZ][iferm]), *(px_fsr[iZ][iferm])));
       py_Hdaughter[iZ][iferm] = new RooFormulaVar(Form("pyRefit_Z%iFermion%i", iZ+1, iferm+1), "(@0+@1)", RooArgList(*(py_ferm[iZ][iferm]), *(py_fsr[iZ][iferm])));
       pz_Hdaughter[iZ][iferm] = new RooFormulaVar(Form("pzRefit_Z%iFermion%i", iZ+1, iferm+1), "(@0+@1)", RooArgList(*(pz_ferm[iZ][iferm]), *(pz_fsr[iZ][iferm])));
-      m_Hdaughter[iZ][iferm] = new RooFormulaVar(Form("m_Z%iFermion%iRefit", iZ+1, iferm+1), "sqrt( pow(@0,2)-pow(@1,2)-pow(@2,2)-pow(@3,2) )", RooArgList(*(E_Hdaughter[iZ][iferm]), *(px_Hdaughter[iZ][iferm]), *(py_Hdaughter[iZ][iferm]), *(pz_Hdaughter[iZ][iferm])));
+      m_Hdaughter[iZ][iferm] = new RooFormulaVar(Form("m_Z%iFermion%iRefit", iZ+1, iferm+1), "sqrt( abs(pow(@0,2)-pow(@1,2)-pow(@2,2)-pow(@3,2)) )*TMath::Sign(1.,pow(@0,2)-pow(@1,2)-pow(@2,2)-pow(@3,2))", RooArgList(*(E_Hdaughter[iZ][iferm]), *(px_Hdaughter[iZ][iferm]), *(py_Hdaughter[iZ][iferm]), *(pz_Hdaughter[iZ][iferm])));
 
       mHdaughter_args.add(*(E_Hdaughter[iZ][iferm]));
       mHdaughter_args.add(*(px_Hdaughter[iZ][iferm]));
@@ -99,10 +94,10 @@ void HMassConstraint::constructVariables(){
     }
 
     // Construct m1/m2
-    m[iZ] = new RooFormulaVar(Form("m%iRefit", iZ+1), "sqrt( pow(@0+@4,2)-pow(@1+@5,2)-pow(@2+@6,2)-pow(@3+@7,2) )", mHdaughter_args);
+    m[iZ] = new RooFormulaVar(Form("m%iRefit", iZ+1), "sqrt( TMath::Max(1e-15, pow(@0+@4,2)-pow(@1+@5,2)-pow(@2+@6,2)-pow(@3+@7,2)) )", mHdaughter_args);
 
     // This beta should multiply the spinPDF bc. having massive fermions have additional scale factors. These factors are even more relevant when FSR is present!
-    beta_Vdaughter[iZ] = new RooFormulaVar(Form("betaV%iRefit", iZ+1), "sqrt( max(1.0e-15, ( 1.-pow((@1+@2)/@0,2) )*( 1.-pow((@1-@2)/@0,2) ) ) )", RooArgList(*(m[iZ]), *(m_Hdaughter[iZ][0]), *(m_Hdaughter[iZ][1])));
+    beta_Vdaughter[iZ] = new RooFormulaVar(Form("betaV%iRefit", iZ+1), "sqrt( TMath::Max(1e-15, ( 1.-pow((@1+@2)/@0,2) )*( 1.-pow((@1-@2)/@0,2) ) ) )", RooArgList(*(m[iZ]), *(m_Hdaughter[iZ][0]), *(m_Hdaughter[iZ][1])));
   }
   // Construct m12
   m12 = new RooFormulaVar("m12Refit", "sqrt( pow(@0+@4+@8+@12,2)-pow(@1+@5+@9+@13,2)-pow(@2+@6+@10+@14,2)-pow(@3+@7+@11+@15,2) )", m12_args);
@@ -112,8 +107,8 @@ void HMassConstraint::constructVariables(){
   hs = new RooRealVar("Gencosthetastar", "cos#theta^{*}", -1, 1);
   h1 = new RooRealVar("GenhelcosthetaZ1", "cos#theta_{1}", -1, 1);
   h2 = new RooRealVar("GenhelcosthetaZ2", "cos#theta_{2}", -1, 1);
-  Phi = new RooRealVar("Genhelphi", "#Phi", -TMath::Pi(), TMath::Pi());
-  Phi1 = new RooRealVar("GenphistarZ1", "#Phi_{1}", -TMath::Pi(), TMath::Pi());
+  Phi = new RooRealVar("Genhelphi", "#Phi", -pi_val, pi_val);
+  Phi1 = new RooRealVar("GenphistarZ1", "#Phi_{1}", -pi_val, pi_val);
   Y = new RooRealVar("GenY", "Y", 0);
 
   // Initialize the meaurables: Set those always integrated over to 0
@@ -164,7 +159,6 @@ void HMassConstraint::destroyVariables(){
     delete m[iZ];
 
     for (int iferm=1; iferm>=0; iferm--){
-
       delete pTdiff_ferm[iZ][iferm];
       delete lambdadiff_ferm[iZ][iferm];
       delete phidiff_ferm[iZ][iferm];
