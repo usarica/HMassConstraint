@@ -428,7 +428,7 @@ TMatrixDSym HMassConstraint::getCovarianceMatrix(const reco::GsfElectron* partic
   double lambda = piovertwo_val - particle->theta();
 
   double energyerr;
-  if (elec->ecalDriven()) energyerr = elec->p4Error(reco::GsfElectron::P4_COMBINATION);
+  if (particle->ecalDriven()) energyerr = particle->p4Error(reco::GsfElectron::P4_COMBINATION);
   else{
     double ecalEnergy = particle->correctedEcalEnergy();
     double err2 = 0.;
