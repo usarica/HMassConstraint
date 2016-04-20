@@ -1,12 +1,12 @@
-#ifndef HMassConstraint_h
-#define HMassConstraint_h
+#ifndef HMassConstraint_H
+#define HMassConstraint_H
 
 #include <iostream>
 #include <cstdlib>
 #include <vector>
 #include <fstream>
 #include <cmath>
-#include <map>
+#include <pair>
 #include "TLorentzVector.h"
 #include "TString.h"
 #include "TMatrixDSym.h"
@@ -24,6 +24,7 @@
 #include <HMassConstraint/interface/TensorPdfFactory_XVV.h>
 #include <DataFormats/Candidate/interface/Candidate.h>
 #include <DataFormats/PatCandidates/interface/PFParticle.h>
+#include <RecoParticleFlow/PFClusterTools/interface/PFEnergyResolution.h>
 
 
 class HMassConstraint {
@@ -41,17 +42,43 @@ public:
     );
   virtual ~HMassConstraint();
 
+  void setJECUserFloatString(TString jecString_="jec_unc"){ jecString=jecString_; }
+  void setPtEtaCuts(
+    Double_t pTcut_muon_=0.,
+    Double_t etacut_muon_=-1.,
+    Double_t pTcut_electron_=0.,
+    Double_t etacut_electron_=-1.,
+    Double_t pTcut_jet_=0.,
+    Double_t etacut_jet_=-1.,
+    Double_t pTcut_fsr_=0.,
+    Double_t etacut_fsr_=-1.
+    );
   void reset(); // { if(fit_res!=0) delete fit_res; }
+  void addDaughters(const std::vector<pair<const reco::Candidate*, const pat::PFParticle*>>& FermionWithFSR); // To set the Lepton and photon arrays in a pair form. Pass null-pointer if the photon does not exist.
+  void fit(); // Does the fit
 
-  void addFermionsWithFSR(const std::vector<map<reco::Candidate*, pat::PFParticle*>>& FermionWithFSR); // To set the Lepton and photon arrays in a map form. Pass null-pointer if the photon does not exist.
+  RooAbsPdf* getPDF(){ return PDF; }
+  RooAbsPdf* getPDFFactory(){ return pdffactory; }
 
-  RooFitResult* fit(); // Does the fit and returns a pointer to the fitresult.
 
-  // Data members
-  RooSpin* spinPDF;
-  SpinPdfFactory* pdfFactory;
+protected:
 
-private:
+  enum{
+    pdgTau=15,
+    pdgMu=13,
+    pdgEle=11,
+    pdgTauNu=16,
+    pdgMuNu=14,
+    pdgEleNu=12,
+    pdgUp=2,
+    pdgDown=1,
+    pdgCharm=4,
+    pdgStrange=3,
+    pdgTop=6,
+    pdgBottom=5,
+    pdgJet=0,
+    pdgUnknown=-99
+  }
 
   // Data members
   const Double_t sqrts;
@@ -59,10 +86,20 @@ private:
   RooSpin::VdecayType Vdecay2;
   const Int_t X_spin;
   const Int_t intCodeStart;
+  TString jecString;
+
+  Double_t pTcut_muon;
+  Double_t lambdacut_muon;
+  Double_t pTcut_electron;
+  Double_t lambdacut_electron;
+  Double_t pTcut_jet;
+  Double_t lambdacut_jet;
 
   RooRealVar* pT_ferm[2][2];
   RooRealVar* lambda_ferm[2][2]; // lambda = Pi/2 - theta
   RooRealVar* phi_ferm[2][2];
+
+  Int_t pdgid_ferm[2][2];
   RooRealVar* massbar_ferm[2][2];
   RooRealVar* pTbar_ferm[2][2];
   RooRealVar* lambdabar_ferm[2][2];
@@ -107,15 +144,18 @@ private:
   RooRealVar* Y;
   RooSpin::modelMeasurables measurables;
 
+  std::vector<pair<TMatrixDSym, TMatrixDSym>> inputCovMatrix; // Maximum 4x2 x (3x3)
+  TMatrixDSym prefitInverseCovMatrix;
+  TMatrixDSym fitCovMatrix;
+
+  SpinPdfFactory* pdfFactory;
   ScalarPdfFactory_ggH* hvvFactory;
   TensorPdfFactory_XVV* xvvFactory;
+  RooSpin* spinPDF;
+  RooGaussian* constraintsPDF;
+  RooProdPdf* PDF;
 
-  std::vector<map<reco::Candidate*, TMatrixDSym>> fermCovMatrix; // Maximum 4 x (3x3)
-  std::vector<map<pat::PFParticle*, TMatrixDSym>> gamCovMatrix; // Maximum 4 x (3x3)
-
-  TMatrixDSym fitCovMatrix;
-  RooGaussian* momCovConstraints;
-  RooFitResult* fitRes;
+  RooFitResult* fitResult;
 
 
   // Member functions
@@ -125,6 +165,16 @@ private:
   virtual void constructPdfFactory();
   virtual void destroyPdfFactory();
 
+  virtual void constructPdfConstraint();
+  virtual void destroyPdfConstraint();
+
+  virtual void constructCompoundPdf();
+  virtual void destroyCompoundPdf();
+
+  TMatrixDSym getCovarianceMatrix(const reco::Candidate* particle);
+  TMatrixDSym getCovarianceMatrix(const reco::GsfElectron* particle);
+  TMatrixDSym getCovarianceMatrix(const pat::Muon* particle);
+  TMatrixDSym getCovarianceMatrix(const reco::PFCandidate* particle);
 };
 
 #endif

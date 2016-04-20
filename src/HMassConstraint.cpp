@@ -24,11 +24,17 @@ HMassConstraint::HMassConstraint(
     assert(0);
   }
 
+  setJECUserFloatString();
+
   constructVariables();
   constructPdfFactory();
+  constructPdfConstraint();
+  constructCompoundPdf();
 }
 
 ~HMassConstraint::HMassConstraint(){
+  destroyCompoundPdf();
+  destroyPdfConstraint();
   destroyPdfFactory();
   destroyVariables();
 }
@@ -143,6 +149,13 @@ void HMassConstraint::constructPdfFactory(){
     pdfFactory = xvvFactory;
   }
 }
+void HMassConstraint::constructPdfConstraint(){
+
+}
+void HMassConstraint::constructCompoundPdf(){
+  RooArgList pdfList(*spinPDF, *constraintsPDF);
+  PDF = RooProdPdf("HMassConstraint_PDF", "HMassConstraint_PDF", pdfList);
+}
 
 void HMassConstraint::destroyVariables(){
   // Destroy in ~reverse order of creation
@@ -204,5 +217,374 @@ void HMassConstraint::destroyPdfFactory(){
   if (hvvFactory!=0){ delete hvvFactory; hvvFactory=0; }
   if (xvvFactory!=0){ delete xvvFactory; xvvFactory=0; }
 }
+void HMassConstraint::destroyPdfConstraint(){
+  if (constraintsPDF!=0) delete constraintsPDF;
+}
+void HMassConstraint::destroyCompoundPdf(){
+  if (PDF!=0) delete PDF;
+}
+
+void HMassConstraint::setPtEtaCuts(
+  Double_t pTcut_muon_,
+  Double_t etacut_muon_,
+  Double_t pTcut_electron_,
+  Double_t etacut_electron_,
+  Double_t pTcut_jet_,
+  Double_t etacut_jet_,
+  Double_t pTcut_fsr_,
+  Double_t etacut_fsr_
+  ){
+  pTcut_muon=pTcut_muon_;
+  pTcut_electron=pTcut_electron_;
+  pTcut_jet=pTcut_jet_;
+  pTcut_fsr=pTcut_fsr_;
+
+  const Double_t pi_val = 3.14159265358979323846;//TMath::Pi();
+  const Double_t piovertwo_val = pi_val/2.;
+
+  if (etacut_muon_>0.) lambdacut_muon=piovertwo_val-2.*atan(exp(-etacut_muon_));
+  else lambdacut_muon=piovertwo_val;
+  if (etacut_electron_>0.) lambdacut_electron=piovertwo_val-2.*atan(exp(-etacut_electron_));
+  else lambdacut_electron=piovertwo_val;
+  if (etacut_jet_>0.) lambdacut_jet=piovertwo_val-2.*atan(exp(-etacut_jet_));
+  else lambdacut_jet=piovertwo_val;
+  if (etacut_fsr_>0.) lambdacut_fsr=piovertwo_val-2.*atan(exp(-etacut_fsr_));
+  else lambdacut_fsr=piovertwo_val;
+  // Actual setting of ranges is done per-event
+}
+
+void HMassConstraint::addDaughters(const std::vector<pair<const reco::Candidate*, const pat::PFParticle*>>& FermionWithFSR){ // Candidate supports jets as well! FSR is also a reco::Candidate daughter.
+  const Double_t pi_val = 3.14159265358979323846;//TMath::Pi();
+  const Double_t piovertwo_val = pi_val/2.;
+
+  int ndaughters=0;
+  // Initialize PDG id's and bar-momenta
+  for (int ix=0; ix<2; ix++){ for (int iy=0; iy<2; iy++) pdgid_ferm[ix][iy]=pdgUnknown; }
+
+  for (std::vector::iterator<pair<reco::Candidate*, pat::PFParticle*>> dau=FermionWithFSR.begin(); dau<FermionWithFSR.end(); dau++){
+    const reco::Candidate* fermion = dau.first();
+    if (fermion==0){ cerr << "HMassConstraint::addDaughters : Daughter " << ndaughters << " pointer is 0!" << endl; break; }
+    else{
+      ndaughters++;
+      if (ndaughter>4){ cerr << "HMassConstraint::addDaughters : Number of daughters (" << ndaughters << ") exceeds 4!" << endl; break; }
+      else{
+        // ndaughters=1..4
+        int iZ = (ndaughters>2 ? 1 : 0);
+        int iferm = 1-(ndaughters%2); // 0, 1
+        int pdgid = fermion->pdgId();
+        if ((iferm==0 && pdgid<0) || (iferm==1 && pdgid>0)) iferm=1-iferm;
+
+        // Set PDG id
+        pdgid_ferm[iZ][iferm] = fermion->pdgId();
+        if (!(abs(pdgid_ferm[iZ][iferm])==pdgEle || abs(pdgid_ferm[iZ][iferm])==pdgMu || abs(pdgid_ferm[iZ][iferm])==pdgTau)) pdgid_ferm[iZ][iferm]=pdgJet; // Needs to be more thorough if jets are passsed
+
+        // Set bar-momenta
+        massbar_ferm[iZ][iferm]->setConstant(false);
+        pTbar_ferm[iZ][iferm]->setConstant(false);
+        lambdabar_ferm[iZ][iferm]->setConstant(false);
+        phibar_ferm[iZ][iferm]->setConstant(false);
+        massbar_ferm[iZ][iferm]->setVal(fermion->mass());
+        pTbar_ferm[iZ][iferm]->setVal(fermion->pt());
+        lambdabar_ferm[iZ][iferm]->setVal(piovertwo_val-fermion->theta());
+        phibar_ferm[iZ][iferm]->setVal(fermion->phi());
+        massbar_ferm[iZ][iferm]->setConstant(true);
+        pTbar_ferm[iZ][iferm]->setConstant(true);
+        lambdabar_ferm[iZ][iferm]->setConstant(true);
+        phibar_ferm[iZ][iferm]->setConstant(true);
+
+        // Set refit fermion momenta ranges
+        pT_ferm[iZ][iferm]->setConstant(false);
+        lambda_ferm[iZ][iferm]->setConstant(false);
+        phi_ferm[iZ][iferm]->setConstant(false);
+        if (abs(pdgid_ferm[iZ][iferm])==pdgEle){
+          pT_ferm[iZ][iferm]->setRange(pTcut_electron, sqrts);
+          lambda__ferm[iZ][iferm]->setRange(-lambdacut_electron, lambdacut_electron);
+        }
+        else if (abs(pdgid_ferm[iZ][iferm])==pdgMuon){
+          pT_ferm[iZ][iferm]->setRange(pTcut_muon, sqrts);
+          lambda__ferm[iZ][iferm]->setRange(-lambdacut_muon, lambdacut_muon);
+        }
+        else if (abs(pdgid_ferm[iZ][iferm])==pdgJet){
+          pT_ferm[iZ][iferm]->setRange(pTcut_jet, sqrts);
+          lambda__ferm[iZ][iferm]->setRange(-lambdacut_jet, lambdacut_jet);
+        }
+        phi_ferm[iZ][iferm]->setRange(-pi_val, pi_val);
+        // Initialize refit fermion momenta to the values of fermion bar-momenta
+        pT_ferm[iZ][iferm]->setVal(pTbar_ferm[iZ][iferm]->getVal());
+        lambda_ferm[iZ][iferm]->setVal(lambdabar_ferm[iZ][iferm]->getVal());
+        phi_ferm[iZ][iferm]->setVal(phibar_ferm[iZ][iferm]->getVal());
+
+        // Get fermion covariance matrices in terms of pT, lambda and phi
+        TMatrixDSym covMatrix_ferm = getCovarianceMatrix(fermion);
+
+        // Do FSR here
+        const pat::PFParticle* gamma = dau.second();
+        if (gamma!=0){
+          pTbar_fsr[iZ][iferm]->setConstant(false);
+          lambdabar_fsr[iZ][iferm]->setConstant(false);
+          phibar_fsr[iZ][iferm]->setConstant(false);
+          pTbar_fsr[iZ][iferm]->setVal(gamma->pt());
+          lambdabar_fsr[iZ][iferm]->setVal(piovertwo_val-gamma->theta());
+          phibar_fsr[iZ][iferm]->setVal(gamma->phi());
+          pTbar_fsr[iZ][iferm]->setConstant(true);
+          lambdabar_fsr[iZ][iferm]->setConstant(true);
+          phibar_fsr[iZ][iferm]->setConstant(true);
+
+          // Set fsr ranges within the cuts and initialize
+          pT_fsr[iZ][iferm]->setConstant(false); pT_fsr[iZ][iferm]->setRange(0., sqrts); pT_fsr[iZ][iferm]->setVal(pTbar_fsr[iZ][iferm]->getVal());
+          lambda_fsr[iZ][iferm]->setConstant(false); lambda_fsr[iZ][iferm]->setRange(-lambdacut_fsr, lambdacut_fsr); lambda_fsr[iZ][iferm]->setVal(lambdabar_fsr[iZ][iferm]->getVal());
+          phi_fsr[iZ][iferm]->setConstant(false); phi_fsr[iZ][iferm]->setRange(-piovertwo_val, piovertwo_val); phi_fsr[iZ][iferm]->setVal(phibar_fsr[iZ][iferm]->getVal());
+
+          // Get fsr covariance matrices in terms of pT, lambda and phi
+
+        }
+        else{
+          pTbar_fsr[iZ][iferm]->setConstant(false);
+          lambdabar_fsr[iZ][iferm]->setConstant(false);
+          phibar_fsr[iZ][iferm]->setConstant(false);
+          pTbar_fsr[iZ][iferm]->setVal(0.);
+          lambdabar_fsr[iZ][iferm]->setVal(0.);
+          phibar_fsr[iZ][iferm]->setVal(0.);
+          pTbar_fsr[iZ][iferm]->setConstant(true);
+          lambdabar_fsr[iZ][iferm]->setConstant(true);
+          phibar_fsr[iZ][iferm]->setConstant(true);
+
+          pT_fsr[iZ][iferm]->setConstant(false); pT_fsr[iZ][iferm]->setRange(0., 0.); pT_fsr[iZ][iferm]->setVal(0.); pT_fsr[iZ][iferm]->setConstant(true);
+          lambda_fsr[iZ][iferm]->setConstant(false); lambda_fsr[iZ][iferm]->setRange(0., 0.); lambda_fsr[iZ][iferm]->setVal(0.); lambda_fsr[iZ][iferm]->setConstant(true);
+          phi_fsr[iZ][iferm]->setConstant(false); phi_fsr[iZ][iferm]->setRange(0., 0.); phi_fsr[iZ][iferm]->setVal(0.); phi_fsr[iZ][iferm]->setConstant(true);
+        }
+
+
+      }
+    }
+  }
+
+  // Set those non-existing particles
+  for (int iZ=0; iZ<2; iZ++){
+    for (int iferm=0; iferm<2; iferm++){
+      if (pdgid_ferm[iZ][iferm]!=pdgUnknown) continue;
+
+      massbar_ferm[iZ][iferm]->setConstant(false); massbar_ferm[iZ][iferm]->setVal(0.); massbar_ferm[iZ][iferm]->setConstant(true);
+      pTbar_ferm[iZ][iferm]->setConstant(false); pTbar_ferm[iZ][iferm]->setVal(0.); pTbar_ferm[iZ][iferm]->setConstant(true);
+      lambdabar_ferm[iZ][iferm]->setConstant(false); lambdabar_ferm[iZ][iferm]->setVal(0.); lambdabar_ferm[iZ][iferm]->setConstant(true);
+      phibar_ferm[iZ][iferm]->setConstant(false); phibar_ferm[iZ][iferm]->setVal(0.); phibar_ferm[iZ][iferm]->setConstant(true);
+      pTbar_fsr[iZ][iferm]->setConstant(false); pTbar_fsr[iZ][iferm]->setVal(0.); pTbar_fsr[iZ][iferm]->setConstant(true);
+      lambdabar_fsr[iZ][iferm]->setConstant(false); lambdabar_fsr[iZ][iferm]->setVal(0.); lambdabar_fsr[iZ][iferm]->setConstant(true);
+      phibar_fsr[iZ][iferm]->setConstant(false); phibar_fsr[iZ][iferm]->setVal(0.); phibar_fsr[iZ][iferm]->setConstant(true);
+
+      pT_ferm[iZ][iferm]->setConstant(false); pT_ferm[iZ][iferm]->setRange(0., 0.); pT_ferm[iZ][iferm]->setVal(0.); pT_ferm[iZ][iferm]->setConstant(true);
+      lambda_ferm[iZ][iferm]->setConstant(false); lambda_ferm[iZ][iferm]->setRange(0., 0.); lambda_ferm[iZ][iferm]->setVal(0.); lambda_ferm[iZ][iferm]->setConstant(true);
+      phi_ferm[iZ][iferm]->setConstant(false); phi_ferm[iZ][iferm]->setRange(0., 0.); phi_ferm[iZ][iferm]->setVal(0.); phi_ferm[iZ][iferm]->setConstant(true);
+      pT_fsr[iZ][iferm]->setConstant(false); pT_fsr[iZ][iferm]->setRange(0., 0.); pT_fsr[iZ][iferm]->setVal(0.); pT_fsr[iZ][iferm]->setConstant(true);
+      lambda_fsr[iZ][iferm]->setConstant(false); lambda_fsr[iZ][iferm]->setRange(0., 0.); lambda_fsr[iZ][iferm]->setVal(0.); lambda_fsr[iZ][iferm]->setConstant(true);
+      phi_fsr[iZ][iferm]->setConstant(false); phi_fsr[iZ][iferm]->setRange(0., 0.); phi_fsr[iZ][iferm]->setVal(0.); phi_fsr[iZ][iferm]->setConstant(true);
+    }
+  }
+}
+
+void HMassConstraint::fit(){
+  RooArgSet data_args;
+  if (intCodeStart%RooSpin::prime_h1 != 0) data_args.add(*(h1));
+  if (intCodeStart%RooSpin::prime_h2 != 0) data_args.add(*(h2));
+  if (intCodeStart%RooSpin::prime_hs != 0) data_args.add(*(hs));
+  if (intCodeStart%RooSpin::prime_Phi != 0) data_args.add(*(Phi));
+  if (intCodeStart%RooSpin::prime_Phi1 != 0) data_args.add(*(Phi1));
+  //data_args.add(*(Y));
+
+  for (int iZ=0; iZ<2; iZ++){
+    for (int iferm=0; iferm<2; iferm++){
+      data_args.add(*(pT_fsr[iZ][iferm]));
+      data_args.add(*(lambda_fsr[iZ][iferm]));
+      data_args.add(*(phi_fsr[iZ][iferm]));
+
+      data_args.add(*(pT_ferm[iZ][iferm]));
+      data_args.add(*(lambda_ferm[iZ][iferm]));
+      data_args.add(*(phi_ferm[iZ][iferm]));
+    }
+  }
+
+  RooArgSet conditionals;
+  conditionals.add(*(m[2]));
+  fitResult = PDF->fitTo(data, ConditionalObservables(conditionals), Save(true));
+  fitCovMatrix = fitResult->covarianceMatrix();
+}
+
+TMatrixDSym HMassConstraint::getCovarianceMatrix(const reco::Candidate* particle){
+  TMatrixDSym covMatrix_empty(3);
+
+  const reco::GsfElectron* electron = dynamic_cast<const reco::GsfElectron*>(fermion);
+  const pat::Muon* muon = dynamic_cast<const pat::Muon*>(fermion);
+  const reco::PFCandidate* pfcand = dynamic_cast<const reco::PFCandidate*>(fermion);
+
+  if (electron!=0) return getCovarianceMatrix(electron);
+  else if (muon!=0) return getCovarianceMatrix(muon);
+  else if (pfcand!=0) return getCovarianceMatrix(pfcand);
+  else return covMatrix_empty;
+}
+TMatrixDSym HMassConstraint::getCovarianceMatrix(const reco::GsfElectron* particle){
+  const Double_t pi_val = 3.14159265358979323846;//TMath::Pi();
+  const Double_t piovertwo_val = pi_val/2.;
+
+  double lambda = piovertwo_val - particle->theta();
+
+  double energyerr;
+  if (elec->ecalDriven()) energyerr = elec->p4Error(reco::GsfElectron::P4_COMBINATION);
+  else{
+    double ecalEnergy = particle->correctedEcalEnergy();
+    double err2 = 0.;
+    if (particle->isEB()){
+      err2 += (5.24e-02*5.24e-02)/ecalEnergy;
+      err2 += (2.01e-01*2.01e-01)/(ecalEnergy*ecalEnergy);
+      err2 += 1.00e-02*1.00e-02;
+    }
+    else if (particle->isEE()){
+      err2 += (1.46e-01*1.46e-01)/ecalEnergy;
+      err2 += (9.21e-01*9.21e-01)/(ecalEnergy*ecalEnergy);
+      err2 += 1.94e-03*1.94e-03;
+    }
+    energyerr = ecalEnergy * sqrt(err2);
+  }
+
+  double C_pt_pt = pow(energyerr/(particle->pt()/particle->energy()*(1.+pow(tan(lambda), 2))), 2);
+  double C_lambda_lambda = 0;
+  if (fabs(lambda)>1e-5) C_lambda_lambda = pow(energyerr/(cos(lambda)*(1.+pow(tan(lambda), 2))), 2);
+  else C_lambda_lambda = pow(energyerr/(cos(1e-5)*(1.+pow(tan(1e-5*sign(1., lambda)), 2))), 2);
+
+  // Everything else is 0. I know this cannot be correct, but let's work with it for now.
+
+  double momCov[9]={ 0 };
+  momCov[3*0+0] = C_pt_pt;
+  momCov[3*1+1] = C_lambda_lambda;
+  TMatrixDSym cov(3, momCov);
+  return cov;
+}
+TMatrixDSym HMassConstraint::getCovarianceMatrix(const pat::Muon* particle){
+  const Double_t pi_val = 3.14159265358979323846;//TMath::Pi();
+  const Double_t piovertwo_val = pi_val/2.;
+
+  double lambda = piovertwo_val - particle->theta();
+  double pterr = particle->userFloat("correctedPtError");
+  double pterr_uncorrected = particle->muonBestTrack()->ptError();
+  double correction = pterr/pterr_uncorrected;
+
+  double trackCov[TrackBase::dimension*TrackBase::dimension];
+  for (int ix=0; ix<TrackBase::dimension; ix++){
+    for (int iy=0; iy<TrackBase::dimension; iy++){
+      trackCov[5*ix+iy] = particle->muonBestTrack()->covariance(ix, iy);
+      if ((ix==TrackBase::i_qoverp || ix==TrackBase::i_lambda) && (iy==TrackBase::i_qoverp || iy==TrackBase::i_lambda)) trackCov[5*ix+iy] *= correction;
+    }
+  }
+
+  double d_pT_d_qoverp = -particle->pt()*particle->p()/particle->charge();
+  double d_pT_d_lambda = -particle->pz();
+  const double d_pT_d_phi = 0;
+  double d_lambda_d_qoverp;
+  if (fabs(lambda)>1e-5) d_lambda_d_qoverp = -particle->p()/particle->charge()/tan(lambda);
+  else d_lambda_d_qoverp = -particle->p()/particle->charge()/tan(1e-5*sign(1., lambda));
+  const double d_lambda_d_lambda = 1;
+  const double d_lambda_d_phi = 0;
+  const double d_phi_d_qoverp = 0;
+  const double d_phi_d_lambda = 0;
+  const double d_phi_d_phi = 1;
+
+  double momCov[9]={ 0 };
+  momCov[3*0+0] = // pT, pT
+    d_pT_d_qoverp*d_pT_d_qoverp * trackCov[5*TrackBase::i_qoverp + TrackBase::i_qoverp] +
+    d_pT_d_lambda*d_pT_d_lambda * trackCov[5*TrackBase::i_lambda + TrackBase::i_lambda] +
+    d_pT_d_phi*d_pT_d_phi * trackCov[5*TrackBase::i_phi + TrackBase::i_phi] +
+    2.*d_pT_d_qoverp*d_pT_d_lambda * trackCov[5*TrackBase::i_qoverp + TrackBase::i_lambda] +
+    2.*d_pT_d_qoverp*d_pT_d_phi * trackCov[5*TrackBase::i_qoverp + TrackBase::i_phi] +
+    2.*d_pT_d_lambda*d_pT_d_phi * trackCov[5*TrackBase::i_lambda + TrackBase::i_phi]
+    ;
+  momCov[3*0+1] = // pT, lambda
+    d_pT_d_qoverp*d_lambda_d_qoverp * trackCov[5*TrackBase::i_qoverp + TrackBase::i_qoverp] +
+    d_pT_d_lambda*d_lambda_d_lambda * trackCov[5*TrackBase::i_lambda + TrackBase::i_lambda] +
+    d_pT_d_phi*d_lambda_d_phi * trackCov[5*TrackBase::i_phi + TrackBase::i_phi] +
+    (d_pT_d_qoverp*d_lambda_d_lambda + d_pT_d_lambda*d_lambda_d_qoverp) * trackCov[5*TrackBase::i_qoverp + TrackBase::i_lambda] +
+    (d_pT_d_qoverp*d_lambda_d_phi + d_pT_d_phi*d_lambda_d_qoverp) * trackCov[5*TrackBase::i_qoverp + TrackBase::i_phi] +
+    (d_pT_d_lambda*d_lambda_d_phi + d_pT_d_phi*d_lambda_d_lambda) * trackCov[5*TrackBase::i_lambda + TrackBase::i_phi]
+    ;
+  momCov[3*0+2] = // pT, phi
+    d_pT_d_qoverp*d_phi_d_qoverp * trackCov[5*TrackBase::i_qoverp + TrackBase::i_qoverp] +
+    d_pT_d_lambda*d_phi_d_lambda * trackCov[5*TrackBase::i_lambda + TrackBase::i_lambda] +
+    d_pT_d_phi*d_phi_d_phi * trackCov[5*TrackBase::i_phi + TrackBase::i_phi] +
+    (d_pT_d_qoverp*d_phi_d_lambda + d_pT_d_lambda*d_phi_d_qoverp) * trackCov[5*TrackBase::i_qoverp + TrackBase::i_lambda] +
+    (d_pT_d_qoverp*d_phi_d_phi + d_pT_d_phi*d_phi_d_qoverp) * trackCov[5*TrackBase::i_qoverp + TrackBase::i_phi] +
+    (d_pT_d_lambda*d_phi_d_phi + d_pT_d_phi*d_phi_d_lambda) * trackCov[5*TrackBase::i_lambda + TrackBase::i_phi]
+    ;
+
+  momCov[3*1+0] = momCov[3*0+1];// lambda, pT
+  momCov[3*1+1] = // lambda, lambda
+    d_lambda_d_qoverp*d_lambda_d_qoverp * trackCov[5*TrackBase::i_qoverp + TrackBase::i_qoverp] +
+    d_lambda_d_lambda*d_lambda_d_lambda * trackCov[5*TrackBase::i_lambda + TrackBase::i_lambda] +
+    d_lambda_d_phi*d_lambda_d_phi * trackCov[5*TrackBase::i_phi + TrackBase::i_phi] +
+    (d_lambda_d_qoverp*d_lambda_d_lambda + d_lambda_d_lambda*d_lambda_d_qoverp) * trackCov[5*TrackBase::i_qoverp + TrackBase::i_lambda] +
+    (d_lambda_d_qoverp*d_lambda_d_phi + d_lambda_d_phi*d_lambda_d_qoverp) * trackCov[5*TrackBase::i_qoverp + TrackBase::i_phi] +
+    (d_lambda_d_lambda*d_lambda_d_phi + d_lambda_d_phi*d_lambda_d_lambda) * trackCov[5*TrackBase::i_lambda + TrackBase::i_phi]
+    ;
+  momCov[3*1+2] = // lambda, phi
+    d_pT_d_qoverp*d_phi_d_qoverp * trackCov[5*TrackBase::i_qoverp + TrackBase::i_qoverp] +
+    d_pT_d_lambda*d_phi_d_lambda * trackCov[5*TrackBase::i_lambda + TrackBase::i_lambda] +
+    d_pT_d_phi*d_phi_d_phi * trackCov[5*TrackBase::i_phi + TrackBase::i_phi] +
+    (d_pT_d_qoverp*d_phi_d_lambda + d_pT_d_lambda*d_phi_d_qoverp) * trackCov[5*TrackBase::i_qoverp + TrackBase::i_lambda] +
+    (d_pT_d_qoverp*d_phi_d_phi + d_pT_d_phi*d_phi_d_qoverp) * trackCov[5*TrackBase::i_qoverp + TrackBase::i_phi] +
+    (d_pT_d_lambda*d_phi_d_phi + d_pT_d_phi*d_phi_d_lambda) * trackCov[5*TrackBase::i_lambda + TrackBase::i_phi]
+    ;
+
+  momCov[3*2+0] = momCov[3*0+2];// phi, pT
+  momCov[3*2+1] = momCov[3*1+2];// phi, lambda
+  momCov[3*2+2] = // phi, phi
+    d_phi_d_qoverp*d_phi_d_qoverp * trackCov[5*TrackBase::i_qoverp + TrackBase::i_qoverp] +
+    d_phi_d_lambda*d_phi_d_lambda * trackCov[5*TrackBase::i_lambda + TrackBase::i_lambda] +
+    d_phi_d_phi*d_phi_d_phi * trackCov[5*TrackBase::i_phi + TrackBase::i_phi] +
+    (d_phi_d_qoverp*d_phi_d_lambda + d_phi_d_lambda*d_phi_d_qoverp) * trackCov[5*TrackBase::i_qoverp + TrackBase::i_lambda] +
+    (d_phi_d_qoverp*d_phi_d_phi + d_phi_d_phi*d_phi_d_qoverp) * trackCov[5*TrackBase::i_qoverp + TrackBase::i_phi] +
+    (d_phi_d_lambda*d_phi_d_phi + d_phi_d_phi*d_phi_d_lambda) * trackCov[5*TrackBase::i_lambda + TrackBase::i_phi]
+    ;
+
+  TMatrixDSym cov(3, momCov);
+  return cov;
+}
+TMatrixDSym HMassConstraint::getCovarianceMatrix(const reco::PFCandidate* particle){
+  const Double_t pi_val = 3.14159265358979323846;//TMath::Pi();
+  const Double_t piovertwo_val = pi_val/2.;
+
+  double energyerr = PFEnergyResolution().getEnergyResolutionEm(particle->energy(), particle->eta());
+  double lambda = piovertwo_val - particle->theta();
+
+  double C_pt_pt = pow(energyerr/(particle->pt()/particle->energy()*(1.+pow(tan(lambda), 2))), 2);
+  double C_lambda_lambda = 0;
+  if (fabs(lambda)>1e-5) C_lambda_lambda = pow(energyerr/(cos(lambda)*(1.+pow(tan(lambda), 2))), 2);
+  else C_lambda_lambda = pow(energyerr/(cos(1e-5)*(1.+pow(tan(1e-5*sign(1.,lambda)), 2))), 2);
+
+  // Everything else is 0. I know this cannot be correct, but let's work with it for now.
+
+  double momCov[9]={ 0 };
+  momCov[3*0+0] = C_pt_pt;
+  momCov[3*1+1] = C_lambda_lambda;
+  TMatrixDSym cov(3, momCov);
+  return cov;
+}
+TMatrixDSym HMassConstraint::getCovarianceMatrix(const pat::Jet* particle){
+  const Double_t pi_val = 3.14159265358979323846;//TMath::Pi();
+  const Double_t piovertwo_val = pi_val/2.;
+
+  double energyerr = particle->userFloat(jecString.Data());
+  double lambda = piovertwo_val - particle->theta();
+
+  double C_pt_pt = pow(energyerr/(particle->pt()/particle->energy()*(1.+pow(tan(lambda), 2))), 2);
+  double C_lambda_lambda = 0;
+  if (fabs(lambda)>1e-5) C_lambda_lambda = pow(energyerr/(cos(lambda)*(1.+pow(tan(lambda), 2))), 2);
+  else C_lambda_lambda = pow(energyerr/(cos(1e-5)*(1.+pow(tan(1e-5*sign(1., lambda)), 2))), 2);
+
+  // Everything else is 0. I know this cannot be correct, but let's work with it for now.
+
+  double momCov[9]={ 0 };
+  momCov[3*0+0] = C_pt_pt;
+  momCov[3*1+1] = C_lambda_lambda;
+  TMatrixDSym cov(3, momCov);
+  return cov;
+}
+
 
 
