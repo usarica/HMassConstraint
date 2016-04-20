@@ -78,7 +78,7 @@ protected:
     pdgBottom=5,
     pdgJet=0,
     pdgUnknown=-99
-  }
+  };
 
   // Data members
   const Double_t sqrts;
@@ -94,6 +94,9 @@ protected:
   Double_t lambdacut_electron;
   Double_t pTcut_jet;
   Double_t lambdacut_jet;
+
+  RooRealVar* varZero;
+  RooRealVar* varOne;
 
   RooRealVar* pT_ferm[2][2];
   RooRealVar* lambda_ferm[2][2]; // lambda = Pi/2 - theta
@@ -111,6 +114,9 @@ protected:
   RooRealVar* pTbar_fsr[2][2];
   RooRealVar* lambdabar_fsr[2][2];
   RooRealVar* phibar_fsr[2][2];
+
+  RooRealVar* invcov_ferm[2][2][9];
+  RooRealVar* invcov_fsr[2][2][9];
 
   RooFormulaVar* px_ferm[2][2];
   RooFormulaVar* py_ferm[2][2];
@@ -133,6 +139,11 @@ protected:
   RooFormulaVar* lambdadiff_fsr[2][2];
   RooFormulaVar* phidiff_fsr[2][2];
 
+  RooFormulaVar* diffproducts_ferm[2][2][9];
+  RooFormulaVar* diffproducts_fsr[2][2][9];
+  RooFormulaVar* sumdiffproducts_ferm_fsr[2][2];
+  RooFormulaVar* sumdiffproducts_ferm_fsr_combined;
+
   RooFormulaVar* beta_Vdaughter[2];
 
   RooFormulaVar* m[3];
@@ -144,18 +155,20 @@ protected:
   RooRealVar* Y;
   RooSpin::modelMeasurables measurables;
 
-  std::vector<pair<TMatrixDSym, TMatrixDSym>> inputCovMatrix; // Maximum 4x2 x (3x3)
-  TMatrixDSym prefitInverseCovMatrix;
-  TMatrixDSym fitCovMatrix;
+  TMatrixDSym invCovMatrix_ferm[2][2]; // Maximum 4 x (3x3)
+  TMatrixDSym invCovMatrix_fsr[2][2]; // Maximum 4 x (3x3)
 
   SpinPdfFactory* pdfFactory;
   ScalarPdfFactory_ggH* hvvFactory;
   TensorPdfFactory_XVV* xvvFactory;
   RooSpin* spinPDF;
-  RooGaussian* constraintsPDF;
+  RooExponential* gausConstraintsPDF;
+  RooGenericPdf* auxilliaryConstraintsPDF;
+  RooProdPdf* constraintsPDF;
   RooProdPdf* PDF;
 
   RooFitResult* fitResult;
+  TMatrixDSym fitCovMatrix;
 
 
   // Member functions
@@ -165,8 +178,8 @@ protected:
   virtual void constructPdfFactory();
   virtual void destroyPdfFactory();
 
-  virtual void constructPdfConstraint();
-  virtual void destroyPdfConstraint();
+  virtual void constructConstraintPdfs();
+  virtual void destroyConstraintPdfs();
 
   virtual void constructCompoundPdf();
   virtual void destroyCompoundPdf();
