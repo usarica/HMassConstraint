@@ -14,6 +14,7 @@
 #include "TMath.h"
 
 using namespace TMath;
+using namespace std;
 
 
 namespace AnaMelaHelpers{

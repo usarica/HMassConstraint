@@ -6,13 +6,15 @@
 #include <vector>
 #include <fstream>
 #include <cmath>
-#include <pair>
+#include <utility>
+#include <algorithm>
 #include "TLorentzVector.h"
 #include "TString.h"
 #include "TMatrixDSym.h"
 #include "RooRealVar.h"
 #include "RooArgSet.h"
 #include "RooGaussian.h"
+#include "RooExponential.h"
 #include "RooProdPdf.h"
 #include "RooDataSet.h"
 #include "RooMinuit.h"
@@ -20,22 +22,22 @@
 #include "RooProdPdf.h"
 #include "RooGenericPdf.h"
 #include "RooFitResult.h"
-#include <HMassConstraint/interface/ScalarPdfFactory_ggH.h>
-#include <HMassConstraint/interface/TensorPdfFactory_XVV.h>
+#include <HMassConstraint/HMassConstraint/include/ScalarPdfFactory_ggH.h>
+#include <HMassConstraint/HMassConstraint/include/TensorPdfFactory_HVV.h>
 
-#include "DataFormats/TrackReco/interface/TrackBase.h"
-#include "DataFormats/TrackReco/interface/Track.h"
+#include <DataFormats/TrackReco/interface/TrackBase.h>
+#include <DataFormats/TrackReco/interface/Track.h>
 #include <DataFormats/Candidate/interface/Candidate.h>
-#include "DataFormats/GsfTrackReco/interface/GsfTrack.h"
-#include "DataFormats/EgammaCandidates/interface/GsfElectron.h"
-#include "DataFormats/MuonReco/interface/Muon.h"
-#include "DataFormats/JetReco/interface/Jet.h"
-#include "DataFormats/PatCandidates/interface/Electron.h"
-#include "DataFormats/PatCandidates/interface/Muon.h"
+#include <DataFormats/GsfTrackReco/interface/GsfTrack.h>
+#include <DataFormats/EgammaCandidates/interface/GsfElectron.h>
+#include <DataFormats/MuonReco/interface/Muon.h>
+#include <DataFormats/JetReco/interface/Jet.h>
+#include <DataFormats/PatCandidates/interface/Electron.h>
+#include <DataFormats/PatCandidates/interface/Muon.h>
 #include <DataFormats/PatCandidates/interface/PFParticle.h>
-#include "DataFormats/PatCandidates/interface/Jet.h"
+#include <DataFormats/PatCandidates/interface/Jet.h>
 
-#include "DataFormats/ParticleFlowCandidate/interface/PFCandidate.h"
+#include <DataFormats/ParticleFlowCandidate/interface/PFCandidate.h>
 #include <RecoParticleFlow/PFClusterTools/interface/PFEnergyResolution.h>
 
 
@@ -130,7 +132,7 @@ public:
     Double_t pTcut_jet_=30.,
     Double_t etacut_jet_=4.7,
     Double_t pTcut_fsr_=2.,
-    Double_t etacut_fsr_=2.4.
+    Double_t etacut_fsr_=2.4
     );
   void setM1M2Cuts(
     Double_t m1cut_=40.,
@@ -147,8 +149,8 @@ public:
   // Do the fit, retry if unsuccessful.
   void fit();
 
-  RooAbsPdf* getPDF(){ return PDF; }
-  RooAbsPdf* getPDFFactory(){ return pdffactory; }
+  RooAbsPdf* getPDF();
+  SpinPdfFactory* getPDFFactory();
 
   Double_t getMassError(Int_t iZ) const; // iZ==0 is m1, iZ==1 is m2, iZ==2 is m12.
 
@@ -171,6 +173,8 @@ protected:
   Double_t lambdacut_electron;
   Double_t pTcut_jet;
   Double_t lambdacut_jet;
+  Double_t pTcut_fsr;
+  Double_t lambdacut_fsr;
   RooRealVar* m1cut;
   RooRealVar* m2cut;
   RooRealVar* mFFcut;
@@ -242,7 +246,7 @@ protected:
 
   SpinPdfFactory* pdfFactory;
   ScalarPdfFactory_ggH* hvvFactory;
-  TensorPdfFactory_XVV* xvvFactory;
+  TensorPdfFactory_HVV* xvvFactory;
   RooSpin* spinPDF;
   RooExponential* gausConstraintsPDF;
   RooGenericPdf* auxilliaryConstraintsPDF;
@@ -275,6 +279,7 @@ protected:
   void getCovarianceMatrix(double (&momCov)[9], const reco::GsfElectron* particle);
   void getCovarianceMatrix(double (&momCov)[9], const pat::Muon* particle);
   void getCovarianceMatrix(double (&momCov)[9], const reco::PFCandidate* particle);
+  void getCovarianceMatrix(double (&momCov)[9], const pat::Jet* particle);
 
   void invertOneDimensional(Int_t includeIndex, double (&momCov)[9]);
   void invertTwoDimensional(Int_t omitIndex, double (&momCov)[9]);
