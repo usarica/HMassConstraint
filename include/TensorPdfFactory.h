@@ -20,6 +20,7 @@ public:
   virtual ~TensorPdfFactory();
 
   virtual void makeParamsConst(bool yesNo)=0;
+  virtual void makeCouplingsConst(bool yesNo=true);
   virtual void addHypothesis(int ig, double initval, double iphase=0);
   virtual void setTensorPolarization(int ig, double initval);
   virtual void resetHypotheses();

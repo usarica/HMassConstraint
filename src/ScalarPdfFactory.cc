@@ -829,4 +829,75 @@ void ScalarPdfFactory::resetHypotheses(){
   }
 }
 
+void ScalarPdfFactory::makeCouplingsConst(bool yesNo){
+  couplings.Lambda->setConstant(true); // The user is not allowed to change the lambda values!
+  couplings.Lambda_zgs1->setConstant(true);
+  couplings.Lambda_z1->setConstant(true);
+  couplings.Lambda_z2->setConstant(true);
+  couplings.Lambda_z3->setConstant(true);
+  couplings.Lambda_z4->setConstant(true);
+  couplings.Lambda_Q->setConstant(true);
+
+  if (parameterization==0){
+    // Set the g decay couplings
+    for (int ig=0; ig<8; ig++){
+      for (int im=0; im<2; im++){
+        ((RooRealVar*)couplings.g1List[ig][im])->setConstant(yesNo);
+        ((RooRealVar*)couplings.g2List[ig][im])->setConstant(yesNo);
+        ((RooRealVar*)couplings.g3List[ig][im])->setConstant(yesNo);
+        ((RooRealVar*)couplings.g4List[ig][im])->setConstant(yesNo);
+
+        if (ig==2) ((RooRealVar*)couplings.gzgs1List[ig-2][im])->setConstant(yesNo); // ghzgs_prime2
+        if (ig==0){
+          ((RooRealVar*)couplings.gzgs2List[ig][im])->setConstant(yesNo);
+          ((RooRealVar*)couplings.gzgs3List[ig][im])->setConstant(yesNo);
+          ((RooRealVar*)couplings.gzgs4List[ig][im])->setConstant(yesNo);
+          ((RooRealVar*)couplings.ggsgs2List[ig][im])->setConstant(yesNo);
+          ((RooRealVar*)couplings.ggsgs3List[ig][im])->setConstant(yesNo);
+          ((RooRealVar*)couplings.ggsgs4List[ig][im])->setConstant(yesNo);
+        }
+      }
+    }
+    for (int iV=0; iV<3; iV++){
+      ((RooRealVar*)couplings.Lambda_z1qsq[iV])->setConstant(yesNo);
+      ((RooRealVar*)couplings.Lambda_z2qsq[iV])->setConstant(yesNo);
+      ((RooRealVar*)couplings.Lambda_z3qsq[iV])->setConstant(yesNo);
+      ((RooRealVar*)couplings.Lambda_z4qsq[iV])->setConstant(yesNo);
+      ((RooRealVar*)couplings.cLambda_qsq[iV])->setConstant(yesNo);
+    }
+  }
+  else{
+    for (int ilam=0; ilam<8; ilam++){
+      if (ilam==1){
+        g1Frac[ilam-1]->setConstant(yesNo);
+        g1Phase[ilam-1]->setConstant(yesNo);
+      }
+      g2Frac[ilam]->setConstant(yesNo);
+      g2Phase[ilam]->setConstant(yesNo);
+      g3Frac[ilam]->setConstant(yesNo);
+      g3Phase[ilam]->setConstant(yesNo);
+      g4Frac[ilam]->setConstant(yesNo);
+      g4Phase[ilam]->setConstant(yesNo);
+      if (ilam==2){
+        gzgs1Frac[ilam-2]->setConstant(yesNo);
+        gzgs1Phase[ilam-2]->setConstant(yesNo);
+      }
+      if (ilam==0){
+        gzgs2Frac[ilam]->setConstant(yesNo);
+        gzgs2Phase[ilam]->setConstant(yesNo);
+        gzgs3Frac[ilam]->setConstant(yesNo);
+        gzgs3Phase[ilam]->setConstant(yesNo);
+        gzgs4Frac[ilam]->setConstant(yesNo);
+        gzgs4Phase[ilam]->setConstant(yesNo);
+        ggsgs2Frac[ilam]->setConstant(yesNo);
+        ggsgs2Phase[ilam]->setConstant(yesNo);
+        ggsgs3Frac[ilam]->setConstant(yesNo);
+        ggsgs3Phase[ilam]->setConstant(yesNo);
+        ggsgs4Frac[ilam]->setConstant(yesNo);
+        ggsgs4Phase[ilam]->setConstant(yesNo);
+      }
+    }
+  }
+}
+
 

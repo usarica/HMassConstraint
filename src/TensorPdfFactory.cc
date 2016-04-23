@@ -75,4 +75,19 @@ void TensorPdfFactory::resetHypotheses(){
   ((RooRealVar*)couplings.f_spinz2)->setVal(0.);
 }
 
+void TensorPdfFactory::makeCouplingsConst(bool yesNo){
+  couplings.Lambda->setConstant(true); // The user is not allowed to change this value!
+  
+  // Set fqq, fz2
+  couplings.f_spinz1->setConstant(yesNo);
+  couplings.f_spinz2->setConstant(yesNo);
+
+  // Set the b decay couplings
+  for (int ig=0; ig<10; ig++){
+    for (int im=0; im<2; im++){
+      if (dynamic_cast<RooRealVar*>(couplings.bList[ig][im])!=0) ((RooRealVar*)couplings.bList[ig][im])->setConstant(yesNo);
+    }
+  }
+}
+
 
