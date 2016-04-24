@@ -142,7 +142,7 @@ public:
   //void reset(); // { if(fit_res!=0) delete fit_res; }
 
   // Make sure each strategy is implemented correctly. Affects the behavior of covariance matrix extractions in addDaughters.
-  void setFitStrategy(HMassConstraint::FitStrategy fitStrategy_=HMassConstraint::FullCov_All_pTLambdaPhi);
+  void setFitStrategy(HMassConstraint::FitStrategy fitStrategy_=HMassConstraint::FullCov_All_pT/*FullCov_All_pTLambdaPhi*/);
   HMassConstraint::FitStrategy getFitStrategy();
   // Add the fermion-FSR pairs, FSR-being per-lepton. fitRetry=true prevents clearing of the protected objects container and allows another fit through different strategies in case the initial fit fails.
   void addDaughters(std::vector<pair<const reco::Candidate*, const pat::PFParticle*>>& FermionWithFSR, bool fitRetry=false); // To set the Lepton and photon arrays in a pair form. Pass null-pointer if the photon does not exist.
@@ -277,6 +277,7 @@ protected:
   // Overloaded functions to compute input block-diagonal C(pT, lambda, phi)
   void sortGetCovarianceMatrix(double (&momCov)[9], const reco::Candidate* particle);
   void getCovarianceMatrix(double (&momCov)[9], const reco::GsfElectron* particle);
+  void getCovarianceMatrix(double (&momCov)[9], const pat::Electron* particle);
   void getCovarianceMatrix(double (&momCov)[9], const pat::Muon* particle);
   void getCovarianceMatrix(double (&momCov)[9], const reco::PFCandidate* particle);
   void getCovarianceMatrix(double (&momCov)[9], const pat::Jet* particle);

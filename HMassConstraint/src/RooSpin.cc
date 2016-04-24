@@ -98,6 +98,7 @@ void RooSpin::alwaysIntegrate(Int_t code){
   intCodeStart=1;
   if (code%prime_h1==0)intCodeStart *= prime_h1;
   if (code%prime_h2==0)intCodeStart *= prime_h2;
+  if (code%prime_hs==0)intCodeStart *= prime_hs;
   if (code%prime_Phi==0)intCodeStart *= prime_Phi;
   if (code%prime_Phi1==0)intCodeStart *= prime_Phi1;
   if (code%prime_m1==0)intCodeStart *= prime_m1;

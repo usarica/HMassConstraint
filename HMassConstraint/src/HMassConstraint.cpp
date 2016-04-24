@@ -28,11 +28,12 @@ HMassConstraint::HMassConstraint(
     assert(0);
   }
 
-  setFitStrategy();
-  setJECUserFloatString();
+  setFitStrategy(); // Set default fit strategy
+  setJECUserFloatString(); // Set JEC uncertainty default string
 
+  setPtEtaCuts(); // Set default cuts on pT, eta and phi of leptons, jets and FSR. Note the the cut targets are numbers!
   constructVariables();
-  setM1M2Cuts();
+  setM1M2Cuts(); // Set default minimum cuts on m1, m2, mA, mB. Note that the cut targets are RooRealVars, so constructVariables needs to be called first!
   constructPdfFactory();
   constructConstraintPdfs();
   constructCompoundPdf();
@@ -62,27 +63,22 @@ void HMassConstraint::constructVariables(){
     RooArgList mHdaughter_args;
     for (int iferm=0; iferm<2; iferm++){
       pT_ferm[iZ][iferm] = new RooRealVar(Form("pTRefit_Z%iFermion%i", iZ+1, iferm+1), "", 0., 0., sqrts);
-      lambda_ferm[iZ][iferm] = new RooRealVar(Form("pTRefit_Z%iFermion%i", iZ+1, iferm+1), "", -piovertwo_val, piovertwo_val);
-      phi_ferm[iZ][iferm] = new RooRealVar(Form("pTRefit_Z%iFermion%i", iZ+1, iferm+1), "", -pi_val, pi_val);
+      lambda_ferm[iZ][iferm] = new RooRealVar(Form("lambdaRefit_Z%iFermion%i", iZ+1, iferm+1), "", -piovertwo_val, piovertwo_val);
+      phi_ferm[iZ][iferm] = new RooRealVar(Form("phiRefit_Z%iFermion%i", iZ+1, iferm+1), "", -pi_val, pi_val);
       massbar_ferm[iZ][iferm] = new RooRealVar(Form("mass_Z%iFermion%i", iZ+1, iferm+1), "", 0., -sqrts, sqrts);
-      pTbar_ferm[iZ][iferm] = new RooRealVar(Form("pTRefit_Z%iFermion%i", iZ+1, iferm+1), "", 0., 0., sqrts);
-      lambdabar_ferm[iZ][iferm] = new RooRealVar(Form("pTRefit_Z%iFermion%i", iZ+1, iferm+1), "", -piovertwo_val, piovertwo_val);
-      phibar_ferm[iZ][iferm] = new RooRealVar(Form("pTRefit_Z%iFermion%i", iZ+1, iferm+1), "", -pi_val, pi_val);
+      pTbar_ferm[iZ][iferm] = new RooRealVar(Form("pTInit_Z%iFermion%i", iZ+1, iferm+1), "", 0., 0., sqrts);
+      lambdabar_ferm[iZ][iferm] = new RooRealVar(Form("lambdaInit_Z%iFermion%i", iZ+1, iferm+1), "", -piovertwo_val, piovertwo_val);
+      phibar_ferm[iZ][iferm] = new RooRealVar(Form("phiInit_Z%iFermion%i", iZ+1, iferm+1), "", -pi_val, pi_val);
 
       pT_fsr[iZ][iferm] = new RooRealVar(Form("pTRefit_Z%iFermion%iFSR", iZ+1, iferm+1), "", 0., 0., sqrts);
-      lambda_fsr[iZ][iferm] = new RooRealVar(Form("pTRefit_Z%iFermion%iFSR", iZ+1, iferm+1), "", -piovertwo_val, piovertwo_val);
-      phi_fsr[iZ][iferm] = new RooRealVar(Form("pTRefit_Z%iFermion%iFSR", iZ+1, iferm+1), "", -pi_val, pi_val);
-      pTbar_fsr[iZ][iferm] = new RooRealVar(Form("pTRefit_Z%iFermion%iFSR", iZ+1, iferm+1), "", 0., 0., sqrts);
-      lambdabar_fsr[iZ][iferm] = new RooRealVar(Form("pTRefit_Z%iFermion%iFSR", iZ+1, iferm+1), "", -piovertwo_val, piovertwo_val);
-      phibar_fsr[iZ][iferm] = new RooRealVar(Form("pTRefit_Z%iFermion%iFSR", iZ+1, iferm+1), "", -pi_val, pi_val);
+      lambda_fsr[iZ][iferm] = new RooRealVar(Form("lambdaRefit_Z%iFermion%iFSR", iZ+1, iferm+1), "", -piovertwo_val, piovertwo_val);
+      phi_fsr[iZ][iferm] = new RooRealVar(Form("phiRefit_Z%iFermion%iFSR", iZ+1, iferm+1), "", -pi_val, pi_val);
+      pTbar_fsr[iZ][iferm] = new RooRealVar(Form("pTInit_Z%iFermion%iFSR", iZ+1, iferm+1), "", 0., 0., sqrts);
+      lambdabar_fsr[iZ][iferm] = new RooRealVar(Form("lambdaInit_Z%iFermion%iFSR", iZ+1, iferm+1), "", -piovertwo_val, piovertwo_val);
+      phibar_fsr[iZ][iferm] = new RooRealVar(Form("phiInit_Z%iFermion%iFSR", iZ+1, iferm+1), "", -pi_val, pi_val);
 
       massbar_ferm[iZ][iferm]->removeMin();
       massbar_ferm[iZ][iferm]->removeMax();
-
-      pT_ferm[iZ][iferm]->removeMax();
-      pTbar_ferm[iZ][iferm]->removeMax();
-      pT_fsr[iZ][iferm]->removeMax();
-      pTbar_fsr[iZ][iferm]->removeMax();
 
       // Covariance elements
       for (int ix=0; ix<3; ix++){
@@ -114,17 +110,17 @@ void HMassConstraint::constructVariables(){
       px_fsr[iZ][iferm] = new RooFormulaVar(Form("pxRefit_Z%iFermion%iFSR", iZ+1, iferm+1), "(@0*cos(@1))", RooArgList(*(pT_fsr[iZ][iferm]), *(phi_fsr[iZ][iferm])));
       py_fsr[iZ][iferm] = new RooFormulaVar(Form("pyRefit_Z%iFermion%iFSR", iZ+1, iferm+1), "(@0*sin(@1))", RooArgList(*(pT_fsr[iZ][iferm]), *(phi_fsr[iZ][iferm])));
       pz_fsr[iZ][iferm] = new RooFormulaVar(Form("pzRefit_Z%iFermion%iFSR", iZ+1, iferm+1), "(@0*tan(@1))", RooArgList(*(pT_fsr[iZ][iferm]), *(lambda_fsr[iZ][iferm])));
-      E_Hdaughter[iZ][iferm] = new RooFormulaVar(Form("ERefit_Z%iFermion%i", iZ+1, iferm+1), "(@0+@1)", RooArgList(*(E_ferm[iZ][iferm]), *(E_fsr[iZ][iferm])));
-      px_Hdaughter[iZ][iferm] = new RooFormulaVar(Form("pxRefit_Z%iFermion%i", iZ+1, iferm+1), "(@0+@1)", RooArgList(*(px_ferm[iZ][iferm]), *(px_fsr[iZ][iferm])));
-      py_Hdaughter[iZ][iferm] = new RooFormulaVar(Form("pyRefit_Z%iFermion%i", iZ+1, iferm+1), "(@0+@1)", RooArgList(*(py_ferm[iZ][iferm]), *(py_fsr[iZ][iferm])));
-      pz_Hdaughter[iZ][iferm] = new RooFormulaVar(Form("pzRefit_Z%iFermion%i", iZ+1, iferm+1), "(@0+@1)", RooArgList(*(pz_ferm[iZ][iferm]), *(pz_fsr[iZ][iferm])));
-      m_Hdaughter[iZ][iferm] = new RooFormulaVar(Form("m_Z%iFermion%iRefit", iZ+1, iferm+1), "sqrt( abs(pow(@0,2)-pow(@1,2)-pow(@2,2)-pow(@3,2)) )*TMath::Sign(1.,pow(@0,2)-pow(@1,2)-pow(@2,2)-pow(@3,2))", RooArgList(*(E_Hdaughter[iZ][iferm]), *(px_Hdaughter[iZ][iferm]), *(py_Hdaughter[iZ][iferm]), *(pz_Hdaughter[iZ][iferm])));
+
+      E_Hdaughter[iZ][iferm] = new RooFormulaVar(Form("ERefit_Z%iDau%i", iZ+1, iferm+1), "(@0+@1)", RooArgList(*(E_ferm[iZ][iferm]), *(E_fsr[iZ][iferm])));
+      px_Hdaughter[iZ][iferm] = new RooFormulaVar(Form("pxRefit_Z%iDau%i", iZ+1, iferm+1), "(@0+@1)", RooArgList(*(px_ferm[iZ][iferm]), *(px_fsr[iZ][iferm])));
+      py_Hdaughter[iZ][iferm] = new RooFormulaVar(Form("pyRefit_Z%iDau%i", iZ+1, iferm+1), "(@0+@1)", RooArgList(*(py_ferm[iZ][iferm]), *(py_fsr[iZ][iferm])));
+      pz_Hdaughter[iZ][iferm] = new RooFormulaVar(Form("pzRefit_Z%iDau%i", iZ+1, iferm+1), "(@0+@1)", RooArgList(*(pz_ferm[iZ][iferm]), *(pz_fsr[iZ][iferm])));
+      m_Hdaughter[iZ][iferm] = new RooFormulaVar(Form("m_Z%iDau%iRefit", iZ+1, iferm+1), "sqrt( abs(pow(@0,2)-pow(@1,2)-pow(@2,2)-pow(@3,2)) )*TMath::Sign(1.,pow(@0,2)-pow(@1,2)-pow(@2,2)-pow(@3,2))", RooArgList(*(E_Hdaughter[iZ][iferm]), *(px_Hdaughter[iZ][iferm]), *(py_Hdaughter[iZ][iferm]), *(pz_Hdaughter[iZ][iferm])));
 
       mHdaughter_args.add(*(E_Hdaughter[iZ][iferm]));
       mHdaughter_args.add(*(px_Hdaughter[iZ][iferm]));
       mHdaughter_args.add(*(py_Hdaughter[iZ][iferm]));
       mHdaughter_args.add(*(pz_Hdaughter[iZ][iferm]));
-      m12_args.add(mHdaughter_args);
 
       pTdiff_ferm[iZ][iferm] = new RooFormulaVar(Form("pTDiff_Z%iFermion%i", iZ+1, iferm+1), "(@0-@1)", RooArgList(*(pT_ferm[iZ][iferm]), *(pTbar_ferm[iZ][iferm])));
       lambdadiff_ferm[iZ][iferm] = new RooFormulaVar(Form("lambdaDiff_Z%iFermion%i", iZ+1, iferm+1), "(@0-@1)", RooArgList(*(lambda_ferm[iZ][iferm]), *(lambdabar_ferm[iZ][iferm])));
@@ -140,15 +136,15 @@ void HMassConstraint::constructVariables(){
           RooArgList product_fsr_args;
 
           product_ferm_args.add(*(invcov_ferm[iZ][iferm][3*ix+iy]));
-          if(ix==0) product_ferm_args.add(*(pTdiff_ferm[iZ][iferm]));
+          if (ix==0) product_ferm_args.add(*(pTdiff_ferm[iZ][iferm]));
           else if(ix==1) product_ferm_args.add(*(lambdadiff_ferm[iZ][iferm]));
           else product_ferm_args.add(*(phidiff_ferm[iZ][iferm]));
-          if(ix==iy) diffproducts_ferm[iZ][iferm][3*ix+iy] = new RooFormulaVar(Form("%s_times_%s", product_ferm_args.at(ix)->GetName(), product_ferm_args.at(iy)->GetName()), "(@0*@1*@1)", product_ferm_args);
+          if (ix==iy) diffproducts_ferm[iZ][iferm][3*ix+iy] = new RooFormulaVar(Form("%s_times_%s", product_ferm_args.at(1)->GetName(), product_ferm_args.at(1)->GetName()), "(@0*@1*@1)", product_ferm_args);
           else{
-            if(iy==0) product_ferm_args.add(*(pTdiff_ferm[iZ][iferm]));
+            if (iy==0) product_ferm_args.add(*(pTdiff_ferm[iZ][iferm]));
             else if(iy==1) product_ferm_args.add(*(lambdadiff_ferm[iZ][iferm]));
             else product_ferm_args.add(*(phidiff_ferm[iZ][iferm]));
-            diffproducts_ferm[iZ][iferm][3*ix+iy] = new RooFormulaVar(Form("%s_times_%s", product_ferm_args.at(ix)->GetName(), product_ferm_args.at(iy)->GetName()), "(@0*@1*@2)", product_ferm_args);
+            diffproducts_ferm[iZ][iferm][3*ix+iy] = new RooFormulaVar(Form("%s_times_%s", product_ferm_args.at(1)->GetName(), product_ferm_args.at(2)->GetName()), "(@0*@1*@2)", product_ferm_args);
           }
           sum_product_ferm_fsr_args.add(product_ferm_args);
 
@@ -156,12 +152,12 @@ void HMassConstraint::constructVariables(){
           if (ix==0) product_fsr_args.add(*(pTdiff_fsr[iZ][iferm]));
           else if(ix==1) product_fsr_args.add(*(lambdadiff_fsr[iZ][iferm]));
           else product_fsr_args.add(*(phidiff_fsr[iZ][iferm]));
-          if(ix==iy) diffproducts_fsr[iZ][iferm][3*ix+iy] = new RooFormulaVar(Form("%s_times_%s", product_fsr_args.at(ix)->GetName(), product_fsr_args.at(iy)->GetName()), "(@0*@1*@1)", product_fsr_args);
+          if (ix==iy) diffproducts_fsr[iZ][iferm][3*ix+iy] = new RooFormulaVar(Form("%s_times_%s", product_fsr_args.at(1)->GetName(), product_fsr_args.at(1)->GetName()), "(@0*@1*@1)", product_fsr_args);
           else{
-            if(iy==0) product_fsr_args.add(*(pTdiff_fsr[iZ][iferm]));
+            if (iy==0) product_fsr_args.add(*(pTdiff_fsr[iZ][iferm]));
             else if(iy==1) product_fsr_args.add(*(lambdadiff_fsr[iZ][iferm]));
             else product_fsr_args.add(*(phidiff_fsr[iZ][iferm]));
-            diffproducts_fsr[iZ][iferm][3*ix+iy] = new RooFormulaVar(Form("%s_times_%s", product_fsr_args.at(ix)->GetName(), product_fsr_args.at(iy)->GetName()), "(@0*@1*@2)", product_fsr_args);
+            diffproducts_fsr[iZ][iferm][3*ix+iy] = new RooFormulaVar(Form("%s_times_%s", product_fsr_args.at(1)->GetName(), product_fsr_args.at(2)->GetName()), "(@0*@1*@2)", product_fsr_args);
           }
           sum_product_ferm_fsr_args.add(product_fsr_args);
         }
@@ -170,12 +166,16 @@ void HMassConstraint::constructVariables(){
       sumdiffproducts_ferm_fsr[iZ][iferm] = new RooFormulaVar(Form("sumdiffproducts_Z%iFermion%i", iZ+1, iferm+1), "-(@0+@1+@2+@3+@4+@5+@6+@7+@8+@9+@10+@11+@12+@13+@14+@15+@16+@17)/2.", sum_product_ferm_fsr_args);
     }
 
+    // Add mHdaughter arguments into m12 arguments
+    m12_args.add(mHdaughter_args);
+
     // Construct m1/m2
     m[iZ] = new RooFormulaVar(Form("m%iRefit", iZ+1), "sqrt( TMath::Max(1e-15, pow(@0+@4,2)-pow(@1+@5,2)-pow(@2+@6,2)-pow(@3+@7,2)) )", mHdaughter_args);
 
     // This beta should multiply the spinPDF bc. having massive fermions have additional scale factors. These factors are even more relevant when FSR is present!
     beta_Vdaughter[iZ] = new RooFormulaVar(Form("betaV%iRefit", iZ+1), "(@0>0. ? sqrt( TMath::Max(1e-15, ( 1.-pow((@1+@2)/@0,2) )*( 1.-pow((@1-@2)/@0,2) ) ) ) : 1.)", RooArgList(*(m[iZ]), *(m_Hdaughter[iZ][0]), *(m_Hdaughter[iZ][1])));
   }
+
   // Construct m12
   m[2] = new RooFormulaVar("m12Refit", "sqrt( pow(@0+@4+@8+@12,2)-pow(@1+@5+@9+@13,2)-pow(@2+@6+@10+@14,2)-pow(@3+@7+@11+@15,2) )", m12_args);
 
@@ -183,7 +183,7 @@ void HMassConstraint::constructVariables(){
   RooArgList mA_args;
   RooArgList mB_args;
   for (int iZ=0; iZ<2; iZ++){
-    int iferm = 1-iZ;
+    int iferm = 0;
     if (iZ==0){
       mA_args.add(*(E_Hdaughter[iZ][iferm]));
       mA_args.add(*(px_Hdaughter[iZ][iferm]));
@@ -196,9 +196,23 @@ void HMassConstraint::constructVariables(){
       mB_args.add(*(py_Hdaughter[iZ][iferm]));
       mB_args.add(*(pz_Hdaughter[iZ][iferm]));
     }
+    iferm = 1;
+    if (iZ==0){
+      mA_args.add(*(E_Hdaughter[1-iZ][iferm]));
+      mA_args.add(*(px_Hdaughter[1-iZ][iferm]));
+      mA_args.add(*(py_Hdaughter[1-iZ][iferm]));
+      mA_args.add(*(pz_Hdaughter[1-iZ][iferm]));
+    }
+    else{
+      mB_args.add(*(E_Hdaughter[1-iZ][iferm]));
+      mB_args.add(*(px_Hdaughter[1-iZ][iferm]));
+      mB_args.add(*(py_Hdaughter[1-iZ][iferm]));
+      mB_args.add(*(pz_Hdaughter[1-iZ][iferm]));
+    }
   }
   mAB[0] = new RooFormulaVar("mARefit", "sqrt( TMath::Max(1e-15, pow(@0+@4,2)-pow(@1+@5,2)-pow(@2+@6,2)-pow(@3+@7,2)) )", mA_args);
   mAB[1] = new RooFormulaVar("mBRefit", "sqrt( TMath::Max(1e-15, pow(@0+@4,2)-pow(@1+@5,2)-pow(@2+@6,2)-pow(@3+@7,2)) )", mB_args);
+
   massCuts = new RooFormulaVar("mABCutParameterization", "( (@0>@4 && @1>@4 && @2>@5 && @3>@6) ? 1. : 1.e-15)", RooArgList(*(mAB[0]), *(mAB[1]), *(m[0]), *(m[1]), *mFFcut, *m1cut, *m2cut));
 
   // Variables integrated over
@@ -244,11 +258,16 @@ void HMassConstraint::constructPdfFactory(){
     spinPDF = xvvFactory->getPDF();
     pdfFactory = xvvFactory;
   }
+  spinPDF->alwaysIntegrate(intCodeStart);
 }
 void HMassConstraint::constructConstraintPdfs(){
   gausConstraintsPDF = new RooExponential("gausConstraintsPDF", "gausConstraintsPDF", *sumdiffproducts_ferm_fsr_combined, *varOne);
   auxilliaryConstraintsPDF = new RooGenericPdf("auxilliaryConstraintsPDF", "@0*@1*@2", RooArgList(*(beta_Vdaughter[0]), *(beta_Vdaughter[1]), *massCuts)); // Will need to add m1, m2 cuts here as well!
-  constraintsPDF = new RooProdPdf("constraintsPDF", "constraintsPDF", RooArgList(*gausConstraintsPDF, *auxilliaryConstraintsPDF));
+  //constraintsPDF = new RooProdPdf("constraintsPDF", "constraintsPDF", RooArgList(*gausConstraintsPDF, *auxilliaryConstraintsPDF));
+  //TEST
+  //constraintsPDF = new RooProdPdf("constraintsPDF", "constraintsPDF", RooArgList(*gausConstraintsPDF, *varOne));
+  //constraintsPDF = new RooProdPdf("constraintsPDF", "constraintsPDF", RooArgList(*varOne, *auxilliaryConstraintsPDF));
+  constraintsPDF = new RooProdPdf("constraintsPDF", "constraintsPDF", RooArgList(*varOne, *varOne));
 }
 void HMassConstraint::constructCompoundPdf(){
   RooArgList pdfList(*spinPDF, *constraintsPDF);
@@ -728,6 +747,8 @@ void HMassConstraint::addDaughters(std::vector<pair<const reco::Candidate*, cons
         if (!(abs(pdgid_ferm[iZ][iferm])==pdgEle || abs(pdgid_ferm[iZ][iferm])==pdgMu || abs(pdgid_ferm[iZ][iferm])==pdgTau)) pdgid_ferm[iZ][iferm]=pdgJet; // Needs to be more thorough if jets are passsed
 #if hmc_debug==1
         cout << "HMassConstraint::addDaughters : Daughter with PDG id " << pdgid << " is assigned to iZ=" << iZ << " and iferm=" << iferm << " with effective id " << pdgid_ferm[iZ][iferm] << endl;
+        cout << "HMassConstraint::addDaughters : Daughter (px, py, pz, E) = (" << fermion->px() << '\t' << fermion->py() << '\t' << fermion->pz() << '\t' << fermion->energy() << endl;
+        cout << "HMassConstraint::addDaughters : Daughter (pT, theta, phi, mass) = (" << fermion->pt() << '\t' << fermion->theta() << " (lambda=" << (piovertwo_val-fermion->theta()) << ")" << '\t' << fermion->phi() << '\t' << fermion->mass() << endl;
 #endif
 
         // Set bar-momenta
@@ -765,11 +786,26 @@ void HMassConstraint::addDaughters(std::vector<pair<const reco::Candidate*, cons
         pT_ferm[iZ][iferm]->setVal(pTbar_ferm[iZ][iferm]->getVal());
         lambda_ferm[iZ][iferm]->setVal(lambdabar_ferm[iZ][iferm]->getVal());
         phi_ferm[iZ][iferm]->setVal(phibar_ferm[iZ][iferm]->getVal());
+        if (fitpT==0 || FermFSRType==1) pT_ferm[iZ][iferm]->setConstant(true);
+        if (fitlambda==0 || FermFSRType==1) lambda_ferm[iZ][iferm]->setConstant(true);
+        if (fitphi==0 || FermFSRType==1) phi_ferm[iZ][iferm]->setConstant(true);
 
         // Get fermion covariance matrices in terms of pT, lambda and phi
         Double_t coefMat_ferm[9] = { 0 };
         if (FermFSRType!=1){
           sortGetCovarianceMatrix(coefMat_ferm, fermion);
+
+#if hmc_debug==1
+          cout << "HMassConstraint::addDaughters : Daughter " << iZ << " / " << iferm << " input covariance matrix:" << endl;
+          for (int ix=0; ix<3; ix++){ for (int iy=0; iy<3; iy++) cout << coefMat_ferm[3*ix+iy] << '\t'; cout << endl; }
+#endif
+          if (coefMat_ferm[3*0+0]==0.) pT_ferm[iZ][iferm]->setConstant(true);
+          if (coefMat_ferm[3*1+1]==0.) lambda_ferm[iZ][iferm]->setConstant(true);
+          if (coefMat_ferm[3*2+2]==0.) phi_ferm[iZ][iferm]->setConstant(true);
+          if (!pT_ferm[iZ][iferm]->isConstant()) pT_ferm[iZ][iferm]->setRange(max(pT_ferm[iZ][iferm]->getMin(), pT_ferm[iZ][iferm]->getVal()-5.*sqrt(coefMat_ferm[3*0+0])), min(pT_ferm[iZ][iferm]->getMax(), pT_ferm[iZ][iferm]->getVal()+5.*sqrt(coefMat_ferm[3*0+0])));
+          if (!lambda_ferm[iZ][iferm]->isConstant()) lambda_ferm[iZ][iferm]->setRange(max(lambda_ferm[iZ][iferm]->getMin(), lambda_ferm[iZ][iferm]->getVal()-5.*sqrt(coefMat_ferm[3*1+1])), min(lambda_ferm[iZ][iferm]->getMax(), lambda_ferm[iZ][iferm]->getVal()+5.*sqrt(coefMat_ferm[3*1+1])));
+          if (!phi_ferm[iZ][iferm]->isConstant()) phi_ferm[iZ][iferm]->setRange(max(phi_ferm[iZ][iferm]->getMin(), phi_ferm[iZ][iferm]->getVal()-5.*sqrt(coefMat_ferm[3*2+2])), min(phi_ferm[iZ][iferm]->getMax(), phi_ferm[iZ][iferm]->getVal()+5.*sqrt(coefMat_ferm[3*2+2])));
+
           strategicInvertCovarianceMatrix(useFullCov, fitpT, fitlambda, fitphi, coefMat_ferm);
         }
         setInverseCovarianceMatrix(iZ, iferm, 0, coefMat_ferm);
@@ -789,10 +825,21 @@ void HMassConstraint::addDaughters(std::vector<pair<const reco::Candidate*, cons
           pT_fsr[iZ][iferm]->setConstant(false); pT_fsr[iZ][iferm]->setRange(0., sqrts); pT_fsr[iZ][iferm]->setVal(pTbar_fsr[iZ][iferm]->getVal());
           lambda_fsr[iZ][iferm]->setConstant(false); lambda_fsr[iZ][iferm]->setRange(-lambdacut_fsr, lambdacut_fsr); lambda_fsr[iZ][iferm]->setVal(lambdabar_fsr[iZ][iferm]->getVal());
           phi_fsr[iZ][iferm]->setConstant(false); phi_fsr[iZ][iferm]->setRange(-piovertwo_val, piovertwo_val); phi_fsr[iZ][iferm]->setVal(phibar_fsr[iZ][iferm]->getVal());
+          if (fitpT==0 || FermFSRType==0) pT_fsr[iZ][iferm]->setConstant(true);
+          if (fitlambda==0 || FermFSRType==0) lambda_fsr[iZ][iferm]->setConstant(true);
+          if (fitphi==0 || FermFSRType==0) phi_fsr[iZ][iferm]->setConstant(true);
 
           // Get fsr covariance matrices in terms of pT, lambda and phi
           if (FermFSRType!=0){
             sortGetCovarianceMatrix(coefMat_fsr, fermion);
+
+            if (coefMat_fsr[3*0+0]==0.) pT_fsr[iZ][iferm]->setConstant(true);
+            if (coefMat_fsr[3*1+1]==0.) lambda_fsr[iZ][iferm]->setConstant(true);
+            if (coefMat_fsr[3*2+2]==0.) phi_fsr[iZ][iferm]->setConstant(true);
+            if (!pT_fsr[iZ][iferm]->isConstant()) pT_fsr[iZ][iferm]->setRange(max(pT_fsr[iZ][iferm]->getMin(), pT_fsr[iZ][iferm]->getVal()-5.*sqrt(coefMat_fsr[3*0+0])), max(pT_fsr[iZ][iferm]->getMax(), pT_fsr[iZ][iferm]->getVal()+5.*sqrt(coefMat_fsr[3*0+0])));
+            if (!lambda_fsr[iZ][iferm]->isConstant()) lambda_fsr[iZ][iferm]->setRange(max(lambda_fsr[iZ][iferm]->getMin(), lambda_fsr[iZ][iferm]->getVal()-5.*sqrt(coefMat_fsr[3*1+1])), max(lambda_fsr[iZ][iferm]->getMax(), lambda_fsr[iZ][iferm]->getVal()+5.*sqrt(coefMat_fsr[3*1+1])));
+            if (!phi_fsr[iZ][iferm]->isConstant()) phi_fsr[iZ][iferm]->setRange(max(phi_fsr[iZ][iferm]->getMin(), phi_fsr[iZ][iferm]->getVal()-5.*sqrt(coefMat_fsr[3*2+2])), max(phi_fsr[iZ][iferm]->getMax(), phi_fsr[iZ][iferm]->getVal()+5.*sqrt(coefMat_fsr[3*2+2])));
+
             strategicInvertCovarianceMatrix(useFullCov, fitpT, fitlambda, fitphi, coefMat_fsr);
           }
           setInverseCovarianceMatrix(iZ, iferm, 1, coefMat_fsr);
@@ -858,24 +905,36 @@ RooDataSet* HMassConstraint::getDataset() const{
 
   for (int iZ=0; iZ<2; iZ++){
     for (int iferm=0; iferm<2; iferm++){
-      data_args.add(*(pT_ferm[iZ][iferm]));
-      data_args.add(*(lambda_ferm[iZ][iferm]));
-      data_args.add(*(phi_ferm[iZ][iferm]));
+      if (!pT_ferm[iZ][iferm]->isConstant()) data_args.add(*(pT_ferm[iZ][iferm]));
+      if (!lambda_ferm[iZ][iferm]->isConstant()) data_args.add(*(lambda_ferm[iZ][iferm]));
+      if (!phi_ferm[iZ][iferm]->isConstant()) data_args.add(*(phi_ferm[iZ][iferm]));
     }
   }
   for (int iZ=0; iZ<2; iZ++){
     for (int iferm=0; iferm<2; iferm++){
-      data_args.add(*(pT_fsr[iZ][iferm]));
-      data_args.add(*(lambda_fsr[iZ][iferm]));
-      data_args.add(*(phi_fsr[iZ][iferm]));
+      if (!pT_fsr[iZ][iferm]->isConstant()) data_args.add(*(pT_fsr[iZ][iferm]));
+      if (!lambda_fsr[iZ][iferm]->isConstant()) data_args.add(*(lambda_fsr[iZ][iferm]));
+      if (!phi_fsr[iZ][iferm]->isConstant()) data_args.add(*(phi_fsr[iZ][iferm]));
     }
   }
 
-  RooDataSet* data = new RooDataSet("fittedHdaughters", "", data_args);
-  data->add(data_args);
+  RooDataSet* data = 0;
+  if (data_args.getSize()<=15){
+    data = new RooDataSet("fittedHdaughters", "", data_args);
+    data->add(data_args);
+#if hmc_debug==1
+    cout << "HMassConstraint::getDataset: Number of arguments: " << data_args.getSize() << endl;
+    cout << "HMassConstraint::getDataset: Data:" << endl;
+    data->Print("v");
+    cout << endl;
+#endif
+  }
   return data;
 }
 void HMassConstraint::fit(){
+#if hmc_debug==1
+  cout << "Begin HMassConstraint::fit()" << endl;
+#endif
   RooDataSet* data = getDataset();
 
   RooArgSet conditionals;
@@ -889,33 +948,51 @@ void HMassConstraint::fit(){
 
   /******************************************** BEGIN FIT **************************************************/
   const Int_t minimizerSuccess=2;
+  Int_t fitStatus=-99;
   // Try with the default strategy
-  fitResult = PDF->fitTo(*data, RooFit::ConditionalObservables(conditionals), RooFit::Save(true), RooFit::PrintLevel(-1));
+#if hmc_debug==1
+  cout << "HMassConstraint::fit: Attempting first fit." << endl;
+#endif
+  if (data!=0){
+    fitResult = PDF->fitTo(*data, RooFit::ConditionalObservables(conditionals), RooFit::Save(true)/*, RooFit::PrintLevel(-1)*/);
+    fitStatus = fitResult->status();
+  }
+#if hmc_debug==1
+  cout << "HMassConstraint::fit: First fit attempted." << endl;
+#endif
   // If the default strategy fails, decrement it until there is no strategy.
-  while (!(fitResult->status()>=minimizerSuccess) && fitResult!=0){
+  while (fitStatus<minimizerSuccess){
     decrementStrategy(fitStrategy_final);
     if (fitStrategy_final==HMassConstraint::nFitStrategies) break;
-    cout << "Fit did not converge. Status changed from " << fitStrategy << " to " << fitStrategy << "to retry." << endl;
+    //cout << "Fit did not converge or was not valid. Status changed from " << fitStrategy << " to " << fitStrategy_final << " to retry." << endl;
 
     vector<pair<const reco::Candidate*, const pat::PFParticle*>> pseudoinput = inputRaw_Fermion_FSR;
     addDaughters(pseudoinput, true); if(data!=0) delete data; data = getDataset();
-    delete fitResult;
-    fitResult = PDF->fitTo(*data, RooFit::ConditionalObservables(conditionals), RooFit::Save(true), RooFit::PrintLevel(-1));
+    if(fitResult!=0) delete fitResult;
+    if (data!=0){
+      fitResult = PDF->fitTo(*data, RooFit::ConditionalObservables(conditionals), RooFit::Save(true)/*, RooFit::PrintLevel(-1)*/);
+      fitStatus = fitResult->status();
+    }
+    else fitStatus=-99;
   }
   // If decrementing the strategy fails, increment it instead until there is no strategy.
-  if (!(fitResult->status()>=minimizerSuccess) && fitResult!=0) setWorkingFitStrategy(fitStrategy);
-  while (!(fitResult->status()>=minimizerSuccess) && fitResult!=0){
+  if (fitStatus<minimizerSuccess) setWorkingFitStrategy(fitStrategy);
+  while (fitStatus<minimizerSuccess){
     incrementStrategy(fitStrategy_final);
     if (fitStrategy_final==HMassConstraint::nFitStrategies) break;
-    cout << "Fit did not converge. Status changed from " << fitStrategy << " to " << fitStrategy << "to retry." << endl;
+    //cout << "Fit did not converge. Status changed from " << fitStrategy << " to " << fitStrategy_final << " to retry." << endl;
 
     vector<pair<const reco::Candidate*, const pat::PFParticle*>> pseudoinput = inputRaw_Fermion_FSR;
     addDaughters(pseudoinput, true); if (data!=0) delete data; data = getDataset();
-    delete fitResult;
-    fitResult = PDF->fitTo(*data, RooFit::ConditionalObservables(conditionals), RooFit::Save(true), RooFit::PrintLevel(-1));
+    if (fitResult!=0) delete fitResult;
+    if (data!=0){
+      fitResult = PDF->fitTo(*data, RooFit::ConditionalObservables(conditionals), RooFit::Save(true)/*, RooFit::PrintLevel(-1)*/);
+      fitStatus = fitResult->status();
+    }
+    else fitStatus=-99;
   }
   /********************************************  END FIT  **************************************************/
-  if (fitResult!=0 && fitResult->status()>=minimizerSuccess) fitCovMatrix = fitResult->covarianceMatrix();
+  if (fitResult!=0 && fitStatus>=minimizerSuccess) fitCovMatrix = fitResult->covarianceMatrix();
   else{
     cout << "Fit did not converge after all trials. Default parameters are to be used." << endl;
   }
@@ -932,15 +1009,22 @@ void HMassConstraint::fit(){
 
 void HMassConstraint::sortGetCovarianceMatrix(double(&momCov)[9], const reco::Candidate* particle){
   const reco::GsfElectron* electron = dynamic_cast<const reco::GsfElectron*>(particle);
-  const pat::Muon* muon = dynamic_cast<const pat::Muon*>(particle);
   const reco::PFCandidate* pfcand = dynamic_cast<const reco::PFCandidate*>(particle);
+  const pat::Muon* muon = dynamic_cast<const pat::Muon*>(particle);
+  const pat::Electron* pat_electron = dynamic_cast<const pat::Electron*>(particle);
   const pat::Jet* jet = dynamic_cast<const pat::Jet*>(particle);
 
   if (jet!=0) return getCovarianceMatrix(momCov, jet);
   else if (muon!=0) return getCovarianceMatrix(momCov, muon);
   else if (pfcand!=0) return getCovarianceMatrix(momCov, pfcand); // This is a general PFCandidate, which is mostly for use as a photon
+  else if (pat_electron!=0) return getCovarianceMatrix(momCov, pat_electron);
   else if (electron!=0) return getCovarianceMatrix(momCov, electron);
-  else{ for(int i=0;i<9;i++) momCov[i]=0.; }
+  else{
+#if hmc_debug==1
+    cout << "HMassConstraint::sortGetCovarianceMatrix: Could not determine the type of particle " << particle << ". Setting all covariance matrices to 0." << endl;
+#endif
+    for(int i=0;i<9;i++) momCov[i]=0.;
+  }
 }
 void HMassConstraint::getCovarianceMatrix(double (&momCov)[9], const reco::GsfElectron* particle){
   for(int i=0;i<9;i++) momCov[i]=0.;
@@ -1067,7 +1151,136 @@ void HMassConstraint::getCovarianceMatrix(double (&momCov)[9], const reco::GsfEl
     // Everything else remains 0.
   }
 }
-void HMassConstraint::getCovarianceMatrix(double (&momCov)[9], const pat::Muon* particle){
+void HMassConstraint::getCovarianceMatrix(double(&momCov)[9], const pat::Electron* particle){
+  for (int i=0; i<9; i++) momCov[i]=0.;
+
+#if hmc_debug==1
+  cout << "Begin HMassConstraint::getCovarianceMatrix(const pat::Electron* particle) with argument " << particle << endl;
+#endif
+
+  double lambda = piovertwo_val - particle->theta();
+  double energyerr = 0;
+  const reco::GsfElectron* origin = dynamic_cast<const reco::GsfElectron*>(particle->originalObject());
+  if (origin!=0) getCovarianceMatrix(momCov, origin);
+  /*
+  if (particle->core()->ecalDrivenSeed()) energyerr = particle->p4Error(reco::GsfElectron::P4_COMBINATION);
+  else{
+    double ecalEnergy = particle->correctedEcalEnergy();
+    double err2 = 0.;
+    if (particle->isEB()){
+      err2 += (5.24e-02*5.24e-02)/ecalEnergy;
+      err2 += (2.01e-01*2.01e-01)/(ecalEnergy*ecalEnergy);
+      err2 += 1.00e-02*1.00e-02;
+    }
+    else if (particle->isEE()){
+      err2 += (1.46e-01*1.46e-01)/ecalEnergy;
+      err2 += (9.21e-01*9.21e-01)/(ecalEnergy*ecalEnergy);
+      err2 += 1.94e-03*1.94e-03;
+    }
+    energyerr = ecalEnergy * sqrt(err2);
+  }
+  */
+#if hmc_debug==1
+  cout << "HMassConstraint::getCovarianceMatrix(const pat::Electron* particle): Energy error before GsfTrack: " << energyerr << endl;
+#endif
+
+  double pterr = energyerr*cos(lambda);
+  const GsfTrack* gsftrack = &(*(particle->gsfTrack()));
+  if (gsftrack!=0){
+#if hmc_debug==1
+    cout << "HMassConstraint::getCovarianceMatrix(const pat::Electron* particle): GsfTrack " << gsftrack << " found!" << endl;
+#endif
+    double pterr_uncorrected = gsftrack->ptModeError();
+    if (pterr_uncorrected==0.) pterr_uncorrected = pterr;
+    double correction = 1.;
+    if (pterr_uncorrected!=0.) correction = pow(pterr/pterr_uncorrected, 2);
+
+    double trackCov[GsfTrack::dimensionMode*GsfTrack::dimensionMode];
+    for (int ix=0; ix<GsfTrack::dimensionMode; ix++){
+      for (int iy=0; iy<GsfTrack::dimensionMode; iy++){
+        if (iy>=ix){
+          trackCov[GsfTrack::dimensionMode*ix+iy] = gsftrack->covarianceMode(ix, iy);
+          if ((ix==TrackBase::i_qoverp || ix==TrackBase::i_lambda) && (iy==TrackBase::i_qoverp || iy==TrackBase::i_lambda)) trackCov[GsfTrack::dimensionMode*ix+iy] *= correction;
+          else if ((ix==TrackBase::i_qoverp || ix==TrackBase::i_lambda) || (iy==TrackBase::i_qoverp || iy==TrackBase::i_lambda)) trackCov[GsfTrack::dimensionMode*ix+iy] *= sqrt(correction);
+        }
+        else trackCov[GsfTrack::dimensionMode*ix+iy] = trackCov[GsfTrack::dimensionMode*iy+ix];
+      }
+    }
+
+    double q = particle->charge();
+    double qoverp = q/particle->p();
+    double d_pT_d_qoverp;
+    if (q==0.){
+      q=1.;
+      qoverp = q/particle->p();
+      d_pT_d_qoverp = 1e12; // (1000 TeV)**2
+    }
+    else d_pT_d_qoverp = -q*cos(lambda)/pow(qoverp, 2); // ==-p*pT/q
+    const double d_pT_d_lambda = -q*sin(lambda)/qoverp; // == -pz
+    const double d_pT_d_phi = 0;
+    const double d_lambda_d_qoverp = 0.;
+    const double d_lambda_d_lambda = 1;
+    const double d_lambda_d_phi = 0;
+    const double d_phi_d_qoverp = 0;
+    const double d_phi_d_lambda = 0;
+    const double d_phi_d_phi = 1;
+
+    momCov[3*0+0] = pterr; // pT, pT, no need to re-calculate
+    momCov[3*0+1] = // pT, lambda
+      d_pT_d_qoverp*d_lambda_d_qoverp * trackCov[GsfTrack::dimensionMode*TrackBase::i_qoverp + TrackBase::i_qoverp] +
+      d_pT_d_lambda*d_lambda_d_lambda * trackCov[GsfTrack::dimensionMode*TrackBase::i_lambda + TrackBase::i_lambda] +
+      d_pT_d_phi*d_lambda_d_phi * trackCov[GsfTrack::dimensionMode*TrackBase::i_phi + TrackBase::i_phi] +
+      (d_pT_d_qoverp*d_lambda_d_lambda + d_pT_d_lambda*d_lambda_d_qoverp) * trackCov[GsfTrack::dimensionMode*TrackBase::i_qoverp + TrackBase::i_lambda] +
+      (d_pT_d_qoverp*d_lambda_d_phi + d_pT_d_phi*d_lambda_d_qoverp) * trackCov[GsfTrack::dimensionMode*TrackBase::i_qoverp + TrackBase::i_phi] +
+      (d_pT_d_lambda*d_lambda_d_phi + d_pT_d_phi*d_lambda_d_lambda) * trackCov[GsfTrack::dimensionMode*TrackBase::i_lambda + TrackBase::i_phi]
+      ;
+    momCov[3*0+2] = // pT, phi
+      d_pT_d_qoverp*d_phi_d_qoverp * trackCov[GsfTrack::dimensionMode*TrackBase::i_qoverp + TrackBase::i_qoverp] +
+      d_pT_d_lambda*d_phi_d_lambda * trackCov[GsfTrack::dimensionMode*TrackBase::i_lambda + TrackBase::i_lambda] +
+      d_pT_d_phi*d_phi_d_phi * trackCov[GsfTrack::dimensionMode*TrackBase::i_phi + TrackBase::i_phi] +
+      (d_pT_d_qoverp*d_phi_d_lambda + d_pT_d_lambda*d_phi_d_qoverp) * trackCov[GsfTrack::dimensionMode*TrackBase::i_qoverp + TrackBase::i_lambda] +
+      (d_pT_d_qoverp*d_phi_d_phi + d_pT_d_phi*d_phi_d_qoverp) * trackCov[GsfTrack::dimensionMode*TrackBase::i_qoverp + TrackBase::i_phi] +
+      (d_pT_d_lambda*d_phi_d_phi + d_pT_d_phi*d_phi_d_lambda) * trackCov[GsfTrack::dimensionMode*TrackBase::i_lambda + TrackBase::i_phi]
+      ;
+
+    momCov[3*1+0] = momCov[3*0+1];// lambda, pT
+    momCov[3*1+1] = // lambda, lambda
+      d_lambda_d_qoverp*d_lambda_d_qoverp * trackCov[GsfTrack::dimensionMode*TrackBase::i_qoverp + TrackBase::i_qoverp] +
+      d_lambda_d_lambda*d_lambda_d_lambda * trackCov[GsfTrack::dimensionMode*TrackBase::i_lambda + TrackBase::i_lambda] +
+      d_lambda_d_phi*d_lambda_d_phi * trackCov[GsfTrack::dimensionMode*TrackBase::i_phi + TrackBase::i_phi] +
+      2.*d_lambda_d_qoverp*d_lambda_d_lambda * trackCov[GsfTrack::dimensionMode*TrackBase::i_qoverp + TrackBase::i_lambda] +
+      2.*d_lambda_d_qoverp*d_lambda_d_phi * trackCov[GsfTrack::dimensionMode*TrackBase::i_qoverp + TrackBase::i_phi] +
+      2.*d_lambda_d_lambda*d_lambda_d_phi * trackCov[GsfTrack::dimensionMode*TrackBase::i_lambda + TrackBase::i_phi]
+      ;
+    momCov[3*1+2] = // lambda, phi
+      d_pT_d_qoverp*d_phi_d_qoverp * trackCov[GsfTrack::dimensionMode*TrackBase::i_qoverp + TrackBase::i_qoverp] +
+      d_pT_d_lambda*d_phi_d_lambda * trackCov[GsfTrack::dimensionMode*TrackBase::i_lambda + TrackBase::i_lambda] +
+      d_pT_d_phi*d_phi_d_phi * trackCov[GsfTrack::dimensionMode*TrackBase::i_phi + TrackBase::i_phi] +
+      (d_pT_d_qoverp*d_phi_d_lambda + d_pT_d_lambda*d_phi_d_qoverp) * trackCov[GsfTrack::dimensionMode*TrackBase::i_qoverp + TrackBase::i_lambda] +
+      (d_pT_d_qoverp*d_phi_d_phi + d_pT_d_phi*d_phi_d_qoverp) * trackCov[GsfTrack::dimensionMode*TrackBase::i_qoverp + TrackBase::i_phi] +
+      (d_pT_d_lambda*d_phi_d_phi + d_pT_d_phi*d_phi_d_lambda) * trackCov[GsfTrack::dimensionMode*TrackBase::i_lambda + TrackBase::i_phi]
+      ;
+
+    momCov[3*2+0] = momCov[3*0+2];// phi, pT
+    momCov[3*2+1] = momCov[3*1+2];// phi, lambda
+    momCov[3*2+2] = // phi, phi
+      d_phi_d_qoverp*d_phi_d_qoverp * trackCov[GsfTrack::dimensionMode*TrackBase::i_qoverp + TrackBase::i_qoverp] +
+      d_phi_d_lambda*d_phi_d_lambda * trackCov[GsfTrack::dimensionMode*TrackBase::i_lambda + TrackBase::i_lambda] +
+      d_phi_d_phi*d_phi_d_phi * trackCov[GsfTrack::dimensionMode*TrackBase::i_phi + TrackBase::i_phi] +
+      2.* d_phi_d_qoverp*d_phi_d_lambda * trackCov[GsfTrack::dimensionMode*TrackBase::i_qoverp + TrackBase::i_lambda] +
+      2.* d_phi_d_qoverp*d_phi_d_phi * trackCov[GsfTrack::dimensionMode*TrackBase::i_qoverp + TrackBase::i_phi] +
+      2.* d_phi_d_lambda*d_phi_d_phi * trackCov[GsfTrack::dimensionMode*TrackBase::i_lambda + TrackBase::i_phi]
+      ;
+  }
+  else{
+#if hmc_debug==1
+    cout << "HMassConstraint::getCovarianceMatrix(const pat::Electron* particle): No GsfTrack present." << endl;
+#endif
+    momCov[3*0+0] = pow(pterr, 2);
+    // Everything else remains 0.
+  }
+}
+void HMassConstraint::getCovarianceMatrix(double(&momCov)[9], const pat::Muon* particle){
   for(int i=0;i<9;i++) momCov[i]=0.;
 
   const double lambda = piovertwo_val - particle->theta();
