@@ -1,4 +1,5 @@
-#include "HMassConstraint/HMassConstraint/include/HMassConstraint.h"
+#include <HMassConstraint/HMassConstraint/include/HMassConstraint.h>
+#include <cassert> 
 
 #ifndef hmc_debug
 #define hmc_debug 1
@@ -263,10 +264,10 @@ void HMassConstraint::constructPdfFactory(){
 void HMassConstraint::constructConstraintPdfs(){
   gausConstraintsPDF = new RooExponential("gausConstraintsPDF", "gausConstraintsPDF", *sumdiffproducts_ferm_fsr_combined, *varOne);
   auxilliaryConstraintsPDF = new RooGenericPdf("auxilliaryConstraintsPDF", "@0*@1*@2", RooArgList(*(beta_Vdaughter[0]), *(beta_Vdaughter[1]), *massCuts)); // Will need to add m1, m2 cuts here as well!
-  constraintsPDF = new RooProdPdf("constraintsPDF", "constraintsPDF", RooArgList(*gausConstraintsPDF, *auxilliaryConstraintsPDF));
+  //constraintsPDF = new RooProdPdf("constraintsPDF", "constraintsPDF", RooArgList(*gausConstraintsPDF, *auxilliaryConstraintsPDF));
   //TEST
   //constraintsPDF = new RooProdPdf("constraintsPDF", "constraintsPDF", RooArgList(*gausConstraintsPDF, *varOne));
-  //constraintsPDF = new RooProdPdf("constraintsPDF", "constraintsPDF", RooArgList(*varOne, *auxilliaryConstraintsPDF));
+  constraintsPDF = new RooProdPdf("constraintsPDF", "constraintsPDF", RooArgList(*varOne, *auxilliaryConstraintsPDF));
   //constraintsPDF = new RooProdPdf("constraintsPDF", "constraintsPDF", RooArgList(*varOne, *varOne));
 }
 void HMassConstraint::constructCompoundPdf(){
@@ -905,16 +906,16 @@ RooDataSet* HMassConstraint::getDataset() const{
 
   for (int iZ=0; iZ<2; iZ++){
     for (int iferm=0; iferm<2; iferm++){
-      if (!pT_ferm[iZ][iferm]->isConstant()) data_args.add(*(pT_ferm[iZ][iferm]));
-      if (!lambda_ferm[iZ][iferm]->isConstant()) data_args.add(*(lambda_ferm[iZ][iferm]));
-      if (!phi_ferm[iZ][iferm]->isConstant()) data_args.add(*(phi_ferm[iZ][iferm]));
+      if (!pT_ferm[iZ][iferm]->isConstant()) data_args.add(*(pTbar_ferm[iZ][iferm]));
+      if (!lambda_ferm[iZ][iferm]->isConstant()) data_args.add(*(lambdabar_ferm[iZ][iferm]));
+      if (!phi_ferm[iZ][iferm]->isConstant()) data_args.add(*(phibar_ferm[iZ][iferm]));
     }
   }
   for (int iZ=0; iZ<2; iZ++){
     for (int iferm=0; iferm<2; iferm++){
-      if (!pT_fsr[iZ][iferm]->isConstant()) data_args.add(*(pT_fsr[iZ][iferm]));
-      if (!lambda_fsr[iZ][iferm]->isConstant()) data_args.add(*(lambda_fsr[iZ][iferm]));
-      if (!phi_fsr[iZ][iferm]->isConstant()) data_args.add(*(phi_fsr[iZ][iferm]));
+      if (!pT_fsr[iZ][iferm]->isConstant()) data_args.add(*(pTbar_fsr[iZ][iferm]));
+      if (!lambda_fsr[iZ][iferm]->isConstant()) data_args.add(*(lambdabar_fsr[iZ][iferm]));
+      if (!phi_fsr[iZ][iferm]->isConstant()) data_args.add(*(phibar_fsr[iZ][iferm]));
     }
   }
 

@@ -1,4 +1,4 @@
-#include "../include/RooGaussianMomConstraint.h"
+#include <HMassConstraint/HMassConstraint/include/RooGaussianMomConstraint.h>
 #include <cassert> 
 
 using namespace std;

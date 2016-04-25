@@ -22,8 +22,10 @@
 #include "RooProdPdf.h"
 #include "RooGenericPdf.h"
 #include "RooFitResult.h"
+
 #include <HMassConstraint/HMassConstraint/include/ScalarPdfFactory_ggH.h>
 #include <HMassConstraint/HMassConstraint/include/TensorPdfFactory_HVV.h>
+#include <HMassConstraint/HMassConstraint/include/RooGaussianMomConstraint.h>
 
 #include <DataFormats/TrackReco/interface/TrackBase.h>
 #include <DataFormats/TrackReco/interface/Track.h>
