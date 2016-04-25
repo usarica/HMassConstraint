@@ -26,12 +26,16 @@ RooGaussianMomConstraint::RooGaussianMomConstraint(
 
 
 RooGaussianMomConstraint::RooGaussianMomConstraint(const RooGaussianMomConstraint& other, const char* name) : RooAbsPdf(other, name),
-variables(other.variables),
-means(other.means),
-matrixElement(other.matrixElement),
+variables("matrixElement", "List of inverse covariance matrix elements", this),
+means("matrixElement", "List of inverse covariance matrix elements", this),
+matrixElement("matrixElement", "List of inverse covariance matrix elements", this),
 coordinates(other.coordinates),
 fixCode(other.fixCode)
-{}
+{
+  setProxyList(other.variables, variables, 3);
+  setProxyList(other.means, means, 3);
+  setProxyList(other.matrixElement, matrixElement, 3*3);
+}
 
 void RooGaussianMomConstraint::fixVariable(Int_t code){
   fixCode=1;

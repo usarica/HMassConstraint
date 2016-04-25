@@ -220,18 +220,6 @@ protected:
   RooFormulaVar* E_Hdaughter[2][2];
   RooFormulaVar* m_Hdaughter[2][2]; // Use this for the extra phasespace multipliers
 
-  RooFormulaVar* pTdiff_ferm[2][2];
-  RooFormulaVar* lambdadiff_ferm[2][2];
-  RooFormulaVar* phidiff_ferm[2][2];
-  RooFormulaVar* pTdiff_fsr[2][2];
-  RooFormulaVar* lambdadiff_fsr[2][2];
-  RooFormulaVar* phidiff_fsr[2][2];
-
-  RooFormulaVar* diffproducts_ferm[2][2][9];
-  RooFormulaVar* diffproducts_fsr[2][2][9];
-  RooFormulaVar* sumdiffproducts_ferm_fsr[2][2];
-  RooFormulaVar* sumdiffproducts_ferm_fsr_combined;
-
   RooFormulaVar* beta_Vdaughter[2];
 
   RooFormulaVar* massCuts;
@@ -252,7 +240,7 @@ protected:
   ScalarPdfFactory_ggH* hvvFactory;
   TensorPdfFactory_HVV* xvvFactory;
   RooSpin* spinPDF;
-  RooExponential* gausConstraintsPDF;
+  RooGaussianMomConstraint* gausConstraintsPDF[2][2][2];
   RooGenericPdf* auxilliaryConstraintsPDF;
   RooProdPdf* constraintsPDF;
   RooProdPdf* PDF;

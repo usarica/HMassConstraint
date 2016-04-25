@@ -122,49 +122,6 @@ void HMassConstraint::constructVariables(){
       mHdaughter_args.add(*(px_Hdaughter[iZ][iferm]));
       mHdaughter_args.add(*(py_Hdaughter[iZ][iferm]));
       mHdaughter_args.add(*(pz_Hdaughter[iZ][iferm]));
-
-      pTdiff_ferm[iZ][iferm] = new RooFormulaVar(Form("pTDiff_Z%iFermion%i", iZ+1, iferm+1), "(@0-@1)", RooArgList(*(pT_ferm[iZ][iferm]), *(pTbar_ferm[iZ][iferm])));
-      lambdadiff_ferm[iZ][iferm] = new RooFormulaVar(Form("lambdaDiff_Z%iFermion%i", iZ+1, iferm+1), "(@0-@1)", RooArgList(*(lambda_ferm[iZ][iferm]), *(lambdabar_ferm[iZ][iferm])));
-      phidiff_ferm[iZ][iferm] = new RooFormulaVar(Form("phiDiff_Z%iFermion%i", iZ+1, iferm+1), "(@0-@1)", RooArgList(*(phi_ferm[iZ][iferm]), *(phibar_ferm[iZ][iferm])));
-      pTdiff_fsr[iZ][iferm] = new RooFormulaVar(Form("pTDiff_Z%iFermion%iFSR", iZ+1, iferm+1), "(@0-@1)", RooArgList(*(pT_fsr[iZ][iferm]), *(pTbar_fsr[iZ][iferm])));
-      lambdadiff_fsr[iZ][iferm] = new RooFormulaVar(Form("lambdaDiff_Z%iFermion%iFSR", iZ+1, iferm+1), "(@0-@1)", RooArgList(*(lambda_fsr[iZ][iferm]), *(lambdabar_fsr[iZ][iferm])));
-      phidiff_fsr[iZ][iferm] = new RooFormulaVar(Form("phiDiff_Z%iFermion%iFSR", iZ+1, iferm+1), "(@0-@1)", RooArgList(*(phi_fsr[iZ][iferm]), *(phibar_fsr[iZ][iferm])));
-
-      RooArgList sum_product_ferm_fsr_args;
-      for (int ix=0; ix<3; ix++){
-        for(int iy=0;iy<3;iy++){
-          RooArgList product_ferm_args;
-          RooArgList product_fsr_args;
-
-          product_ferm_args.add(*(invcov_ferm[iZ][iferm][3*ix+iy]));
-          if (ix==0) product_ferm_args.add(*(pTdiff_ferm[iZ][iferm]));
-          else if(ix==1) product_ferm_args.add(*(lambdadiff_ferm[iZ][iferm]));
-          else product_ferm_args.add(*(phidiff_ferm[iZ][iferm]));
-          if (ix==iy) diffproducts_ferm[iZ][iferm][3*ix+iy] = new RooFormulaVar(Form("%s_times_%s", product_ferm_args.at(1)->GetName(), product_ferm_args.at(1)->GetName()), "(@0*@1*@1)", product_ferm_args);
-          else{
-            if (iy==0) product_ferm_args.add(*(pTdiff_ferm[iZ][iferm]));
-            else if(iy==1) product_ferm_args.add(*(lambdadiff_ferm[iZ][iferm]));
-            else product_ferm_args.add(*(phidiff_ferm[iZ][iferm]));
-            diffproducts_ferm[iZ][iferm][3*ix+iy] = new RooFormulaVar(Form("%s_times_%s", product_ferm_args.at(1)->GetName(), product_ferm_args.at(2)->GetName()), "(@0*@1*@2)", product_ferm_args);
-          }
-          sum_product_ferm_fsr_args.add(product_ferm_args);
-
-          product_fsr_args.add(*(invcov_fsr[iZ][iferm][3*ix+iy]));
-          if (ix==0) product_fsr_args.add(*(pTdiff_fsr[iZ][iferm]));
-          else if(ix==1) product_fsr_args.add(*(lambdadiff_fsr[iZ][iferm]));
-          else product_fsr_args.add(*(phidiff_fsr[iZ][iferm]));
-          if (ix==iy) diffproducts_fsr[iZ][iferm][3*ix+iy] = new RooFormulaVar(Form("%s_times_%s", product_fsr_args.at(1)->GetName(), product_fsr_args.at(1)->GetName()), "(@0*@1*@1)", product_fsr_args);
-          else{
-            if (iy==0) product_fsr_args.add(*(pTdiff_fsr[iZ][iferm]));
-            else if(iy==1) product_fsr_args.add(*(lambdadiff_fsr[iZ][iferm]));
-            else product_fsr_args.add(*(phidiff_fsr[iZ][iferm]));
-            diffproducts_fsr[iZ][iferm][3*ix+iy] = new RooFormulaVar(Form("%s_times_%s", product_fsr_args.at(1)->GetName(), product_fsr_args.at(2)->GetName()), "(@0*@1*@2)", product_fsr_args);
-          }
-          sum_product_ferm_fsr_args.add(product_fsr_args);
-        }
-      }
-      // Notice that the sum below is multiplied a a factor -1/2!
-      sumdiffproducts_ferm_fsr[iZ][iferm] = new RooFormulaVar(Form("sumdiffproducts_Z%iFermion%i", iZ+1, iferm+1), "-(@0+@1+@2+@3+@4+@5+@6+@7+@8+@9+@10+@11+@12+@13+@14+@15+@16+@17)/2.", sum_product_ferm_fsr_args);
     }
 
     // Add mHdaughter arguments into m12 arguments
@@ -225,9 +182,6 @@ void HMassConstraint::constructVariables(){
   Phi1 = new RooRealVar("GenphistarZ1", "#Phi_{1}", -pi_val, pi_val);
   Y = new RooRealVar("GenY", "Y", 0);
 
-  // Construct the Gaussian contraint sums over all Zs and daughters
-  sumdiffproducts_ferm_fsr_combined = new RooFormulaVar("sumdiffproducts_combined", "(@0+@1+@2+@3)", RooArgList(*(sumdiffproducts_ferm_fsr[0][0]), *(sumdiffproducts_ferm_fsr[0][1]), *(sumdiffproducts_ferm_fsr[1][0]), *(sumdiffproducts_ferm_fsr[1][1])));
-
   // Initialize the meaurables: Set those always integrated over to 0
   measurables.m1 = m[0];
   measurables.m2 = m[1];
@@ -262,12 +216,38 @@ void HMassConstraint::constructPdfFactory(){
   spinPDF->alwaysIntegrate(intCodeStart);
 }
 void HMassConstraint::constructConstraintPdfs(){
-  gausConstraintsPDF = new RooExponential("gausConstraintsPDF", "gausConstraintsPDF", *sumdiffproducts_ferm_fsr_combined, *varOne);
+  RooArgList constraints;
+  for (int iZ=0; iZ<2; iZ++){
+    for (int iferm=0; iferm<2; iferm++){
+      RooArgList vars_ferm, means_ferm, me_ferm;
+      vars_ferm.add(*(pT_ferm[iZ][iferm]));
+      vars_ferm.add(*(lambda_ferm[iZ][iferm]));
+      vars_ferm.add(*(phi_ferm[iZ][iferm]));
+      means_ferm.add(*(pTbar_ferm[iZ][iferm]));
+      means_ferm.add(*(lambdabar_ferm[iZ][iferm]));
+      means_ferm.add(*(phibar_ferm[iZ][iferm]));
+      for (int im=0; im<9; im++) me_ferm.add(*(invcov_ferm[iZ][iferm][im]));
+      gausConstraintsPDF[iZ][iferm][0] = new RooGaussianMomConstraint(Form("gausConstraintsPDF_Z%iFermion%i", iZ+1, iferm+1), Form("gausConstraintsPDF_Z%iFermion%i", iZ+1, iferm+1), vars_ferm, means_ferm, me_ferm);
+      constraints.add(*(gausConstraintsPDF[iZ][iferm][0]));
+
+      RooArgList vars_fsr, means_fsr, me_fsr;
+      vars_fsr.add(*(pT_fsr[iZ][iferm]));
+      vars_fsr.add(*(lambda_fsr[iZ][iferm]));
+      vars_fsr.add(*(phi_fsr[iZ][iferm]));
+      means_fsr.add(*(pTbar_fsr[iZ][iferm]));
+      means_fsr.add(*(lambdabar_fsr[iZ][iferm]));
+      means_fsr.add(*(phibar_fsr[iZ][iferm]));
+      for (int im=0; im<9; im++) me_fsr.add(*(invcov_fsr[iZ][iferm][im]));
+      gausConstraintsPDF[iZ][iferm][1] = new RooGaussianMomConstraint(Form("gausConstraintsPDF_Z%iFermion%i", iZ+1, iferm+1), Form("gausConstraintsPDF_Z%iFermion%i", iZ+1, iferm+1), vars_fsr, means_fsr, me_fsr);
+      constraints.add(*(gausConstraintsPDF[iZ][iferm][1]));
+    }
+  }
   auxilliaryConstraintsPDF = new RooGenericPdf("auxilliaryConstraintsPDF", "@0*@1*@2", RooArgList(*(beta_Vdaughter[0]), *(beta_Vdaughter[1]), *massCuts)); // Will need to add m1, m2 cuts here as well!
-  //constraintsPDF = new RooProdPdf("constraintsPDF", "constraintsPDF", RooArgList(*gausConstraintsPDF, *auxilliaryConstraintsPDF));
+  //constraints.add(*(auxilliaryConstraintsPDF));
+
   //TEST
-  //constraintsPDF = new RooProdPdf("constraintsPDF", "constraintsPDF", RooArgList(*gausConstraintsPDF, *varOne));
-  constraintsPDF = new RooProdPdf("constraintsPDF", "constraintsPDF", RooArgList(*varOne, *auxilliaryConstraintsPDF));
+  constraintsPDF = new RooProdPdf("constraintsPDF", "constraintsPDF", constraints);
+  //constraintsPDF = new RooProdPdf("constraintsPDF", "constraintsPDF", RooArgList(*varOne, *auxilliaryConstraintsPDF));
   //constraintsPDF = new RooProdPdf("constraintsPDF", "constraintsPDF", RooArgList(*varOne, *varOne));
 }
 void HMassConstraint::constructCompoundPdf(){
@@ -278,9 +258,6 @@ void HMassConstraint::constructCompoundPdf(){
 void HMassConstraint::destroyVariables(){
   // Destroy the fit result, the ultimate culmination of all evil!
   deletePtr(fitResult);
-
-  // Destroy sums of (inv. cov.)^i^j*dx_idx_j
-  deletePtr(sumdiffproducts_ferm_fsr_combined);
 
   // Destroy in ~reverse order of creation
   deletePtr(h1);
@@ -299,22 +276,6 @@ void HMassConstraint::destroyVariables(){
     deletePtr(m[iZ]);
 
     for (int iferm=1; iferm>=0; iferm--){
-
-      deletePtr(sumdiffproducts_ferm_fsr[iZ][iferm]);
-      for (int ix=0; ix<3; ix++){
-        for (int iy=0; iy<3; iy++){
-          deletePtr(diffproducts_ferm[iZ][iferm][3*ix+iy]);
-          deletePtr(diffproducts_fsr[iZ][iferm][3*ix+iy]);
-        }
-      }
-
-      deletePtr(pTdiff_ferm[iZ][iferm]);
-      deletePtr(lambdadiff_ferm[iZ][iferm]);
-      deletePtr(phidiff_ferm[iZ][iferm]);
-      deletePtr(pTdiff_fsr[iZ][iferm]);
-      deletePtr(lambdadiff_fsr[iZ][iferm]);
-      deletePtr(phidiff_fsr[iZ][iferm]);
-
       deletePtr(E_Hdaughter[iZ][iferm]);
       deletePtr(px_Hdaughter[iZ][iferm]);
       deletePtr(py_Hdaughter[iZ][iferm]);
@@ -370,7 +331,11 @@ void HMassConstraint::destroyPdfFactory(){
 void HMassConstraint::destroyConstraintPdfs(){
   deletePtr(constraintsPDF);
   deletePtr(auxilliaryConstraintsPDF);
-  deletePtr(gausConstraintsPDF);
+  for (int iZ=1; iZ>=0; iZ--){
+    for (int iferm=1; iferm>=0; iferm--){
+      for (int ifsr=1; ifsr>=0; ifsr--) deletePtr(gausConstraintsPDF[iZ][iferm][ifsr]);
+    }
+  }
 }
 void HMassConstraint::destroyCompoundPdf(){
   deletePtr(PDF);
