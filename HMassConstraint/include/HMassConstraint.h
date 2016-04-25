@@ -41,7 +41,7 @@
 #include <RecoParticleFlow/PFClusterTools/interface/PFEnergyResolution.h>
 
 
-namespace HMCconstants{
+namespace HMCtoolkit{
   const Double_t pi_val = 3.14159265358979323846;// TMath::Pi();
   const Double_t piovertwo_val = 1.57079632679489661923;// pi_val/2.;
   const Int_t pdgTau=15;
@@ -58,6 +58,8 @@ namespace HMCconstants{
   const Int_t pdgBottom=5;
   const Int_t pdgJet=0;
   const Int_t pdgUnknown=-99;
+
+  template<typename varType> void deletePtr(varType* ptr){ if (ptr!=0) delete ptr; ptr=0; }
 }
 
 
@@ -277,7 +279,7 @@ protected:
   // Overloaded functions to compute input block-diagonal C(pT, lambda, phi)
   void sortGetCovarianceMatrix(double (&momCov)[9], const reco::Candidate* particle);
   void getCovarianceMatrix(double (&momCov)[9], const reco::GsfElectron* particle);
-  void getCovarianceMatrix(double (&momCov)[9], const pat::Electron* particle);
+  //void getCovarianceMatrix(double (&momCov)[9], const pat::Electron* particle);
   void getCovarianceMatrix(double (&momCov)[9], const pat::Muon* particle);
   void getCovarianceMatrix(double (&momCov)[9], const reco::PFCandidate* particle);
   void getCovarianceMatrix(double (&momCov)[9], const pat::Jet* particle);

@@ -39,6 +39,8 @@
 <use name="roostats"/>
 <use name="histfactory"/>
 
+<Flags CPPFLAGS="-Wno-error=unused-variable" />
+
 <export>
     <lib   name="1"/>
 </export>

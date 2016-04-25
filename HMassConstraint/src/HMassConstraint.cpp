@@ -7,7 +7,7 @@
 using namespace std;
 using namespace reco;
 using namespace pat;
-using namespace HMCconstants;
+using namespace HMCtoolkit;
 
 
 HMassConstraint::HMassConstraint(
@@ -263,11 +263,11 @@ void HMassConstraint::constructPdfFactory(){
 void HMassConstraint::constructConstraintPdfs(){
   gausConstraintsPDF = new RooExponential("gausConstraintsPDF", "gausConstraintsPDF", *sumdiffproducts_ferm_fsr_combined, *varOne);
   auxilliaryConstraintsPDF = new RooGenericPdf("auxilliaryConstraintsPDF", "@0*@1*@2", RooArgList(*(beta_Vdaughter[0]), *(beta_Vdaughter[1]), *massCuts)); // Will need to add m1, m2 cuts here as well!
-  //constraintsPDF = new RooProdPdf("constraintsPDF", "constraintsPDF", RooArgList(*gausConstraintsPDF, *auxilliaryConstraintsPDF));
+  constraintsPDF = new RooProdPdf("constraintsPDF", "constraintsPDF", RooArgList(*gausConstraintsPDF, *auxilliaryConstraintsPDF));
   //TEST
   //constraintsPDF = new RooProdPdf("constraintsPDF", "constraintsPDF", RooArgList(*gausConstraintsPDF, *varOne));
   //constraintsPDF = new RooProdPdf("constraintsPDF", "constraintsPDF", RooArgList(*varOne, *auxilliaryConstraintsPDF));
-  constraintsPDF = new RooProdPdf("constraintsPDF", "constraintsPDF", RooArgList(*varOne, *varOne));
+  //constraintsPDF = new RooProdPdf("constraintsPDF", "constraintsPDF", RooArgList(*varOne, *varOne));
 }
 void HMassConstraint::constructCompoundPdf(){
   RooArgList pdfList(*spinPDF, *constraintsPDF);
@@ -276,103 +276,103 @@ void HMassConstraint::constructCompoundPdf(){
 
 void HMassConstraint::destroyVariables(){
   // Destroy the fit result, the ultimate culmination of all evil!
-  if (fitResult!=0) delete fitResult;
+  deletePtr(fitResult);
 
   // Destroy sums of (inv. cov.)^i^j*dx_idx_j
-  delete sumdiffproducts_ferm_fsr_combined;
+  deletePtr(sumdiffproducts_ferm_fsr_combined);
 
   // Destroy in ~reverse order of creation
-  delete h1;
-  delete h2;
-  delete hs;
-  delete Phi;
-  delete Phi1;
-  delete Y;
+  deletePtr(h1);
+  deletePtr(h2);
+  deletePtr(hs);
+  deletePtr(Phi);
+  deletePtr(Phi1);
+  deletePtr(Y);
 
-  delete massCuts;
-  for (int iZ=1; iZ>=0; iZ--) delete mAB[iZ];
+  deletePtr(massCuts);
+  for (int iZ=1; iZ>=0; iZ--) deletePtr(mAB[iZ]);
 
-  delete m[2];
+  deletePtr(m[2]);
   for (int iZ=1; iZ>=0; iZ--){
-    delete beta_Vdaughter[iZ];
-    delete m[iZ];
+    deletePtr(beta_Vdaughter[iZ]);
+    deletePtr(m[iZ]);
 
     for (int iferm=1; iferm>=0; iferm--){
 
-      delete sumdiffproducts_ferm_fsr[iZ][iferm];
-      for(int ix=0;ix<3;ix++){
-        for(int iy=0;iy<3;iy++){
-          delete diffproducts_ferm[iZ][iferm][3*ix+iy];
-          delete diffproducts_fsr[iZ][iferm][3*ix+iy];
+      deletePtr(sumdiffproducts_ferm_fsr[iZ][iferm]);
+      for (int ix=0; ix<3; ix++){
+        for (int iy=0; iy<3; iy++){
+          deletePtr(diffproducts_ferm[iZ][iferm][3*ix+iy]);
+          deletePtr(diffproducts_fsr[iZ][iferm][3*ix+iy]);
         }
       }
 
-      delete pTdiff_ferm[iZ][iferm];
-      delete lambdadiff_ferm[iZ][iferm];
-      delete phidiff_ferm[iZ][iferm];
-      delete pTdiff_fsr[iZ][iferm];
-      delete lambdadiff_fsr[iZ][iferm];
-      delete phidiff_fsr[iZ][iferm];
+      deletePtr(pTdiff_ferm[iZ][iferm]);
+      deletePtr(lambdadiff_ferm[iZ][iferm]);
+      deletePtr(phidiff_ferm[iZ][iferm]);
+      deletePtr(pTdiff_fsr[iZ][iferm]);
+      deletePtr(lambdadiff_fsr[iZ][iferm]);
+      deletePtr(phidiff_fsr[iZ][iferm]);
 
-      delete E_Hdaughter[iZ][iferm];
-      delete px_Hdaughter[iZ][iferm];
-      delete py_Hdaughter[iZ][iferm];
-      delete pz_Hdaughter[iZ][iferm];
-      delete m_Hdaughter[iZ][iferm];
+      deletePtr(E_Hdaughter[iZ][iferm]);
+      deletePtr(px_Hdaughter[iZ][iferm]);
+      deletePtr(py_Hdaughter[iZ][iferm]);
+      deletePtr(pz_Hdaughter[iZ][iferm]);
+      deletePtr(m_Hdaughter[iZ][iferm]);
 
-      delete E_fsr[iZ][iferm];
-      delete px_fsr[iZ][iferm];
-      delete py_fsr[iZ][iferm];
-      delete pz_fsr[iZ][iferm];
-      delete E_ferm[iZ][iferm];
-      delete px_ferm[iZ][iferm];
-      delete py_ferm[iZ][iferm];
-      delete pz_ferm[iZ][iferm];
+      deletePtr(E_fsr[iZ][iferm]);
+      deletePtr(px_fsr[iZ][iferm]);
+      deletePtr(py_fsr[iZ][iferm]);
+      deletePtr(pz_fsr[iZ][iferm]);
+      deletePtr(E_ferm[iZ][iferm]);
+      deletePtr(px_ferm[iZ][iferm]);
+      deletePtr(py_ferm[iZ][iferm]);
+      deletePtr(pz_ferm[iZ][iferm]);
 
       for (int ix=0; ix<3; ix++){
         for (int iy=0; iy<3; iy++){
-          delete invcov_ferm[iZ][iferm][3*ix+iy];
-          delete invcov_fsr[iZ][iferm][3*ix+iy];
+          deletePtr(invcov_ferm[iZ][iferm][3*ix+iy]);
+          deletePtr(invcov_fsr[iZ][iferm][3*ix+iy]);
         }
       }
 
-      delete pT_fsr[iZ][iferm];
-      delete lambda_fsr[iZ][iferm];
-      delete phi_fsr[iZ][iferm];
-      delete pTbar_fsr[iZ][iferm];
-      delete lambdabar_fsr[iZ][iferm];
-      delete phibar_fsr[iZ][iferm];
+      deletePtr(pT_fsr[iZ][iferm]);
+      deletePtr(lambda_fsr[iZ][iferm]);
+      deletePtr(phi_fsr[iZ][iferm]);
+      deletePtr(pTbar_fsr[iZ][iferm]);
+      deletePtr(lambdabar_fsr[iZ][iferm]);
+      deletePtr(phibar_fsr[iZ][iferm]);
 
-      delete pT_ferm[iZ][iferm];
-      delete lambda_ferm[iZ][iferm];
-      delete phi_ferm[iZ][iferm];
-      delete massbar_ferm[iZ][iferm];
-      delete pTbar_ferm[iZ][iferm];
-      delete lambdabar_ferm[iZ][iferm];
-      delete phibar_ferm[iZ][iferm];
+      deletePtr(pT_ferm[iZ][iferm]);
+      deletePtr(lambda_ferm[iZ][iferm]);
+      deletePtr(phi_ferm[iZ][iferm]);
+      deletePtr(massbar_ferm[iZ][iferm]);
+      deletePtr(pTbar_ferm[iZ][iferm]);
+      deletePtr(lambdabar_ferm[iZ][iferm]);
+      deletePtr(phibar_ferm[iZ][iferm]);
     }
   }
 
-  delete m1cut;
-  delete m2cut;
-  delete mFFcut;
+  deletePtr(m1cut);
+  deletePtr(m2cut);
+  deletePtr(mFFcut);
 
-  delete varOne;
-  delete varZero;
+  deletePtr(varOne);
+  deletePtr(varZero);
 }
 void HMassConstraint::destroyPdfFactory(){
   // Only one of these is true; no need to delete pdfFactory since it is simply a mother-pointer to either of these.
   pdfFactory=0;
-  if (hvvFactory!=0){ delete hvvFactory; hvvFactory=0; }
-  if (xvvFactory!=0){ delete xvvFactory; xvvFactory=0; }
+  deletePtr(hvvFactory);
+  deletePtr(xvvFactory);
 }
 void HMassConstraint::destroyConstraintPdfs(){
-  delete constraintsPDF;
-  delete auxilliaryConstraintsPDF;
-  delete gausConstraintsPDF;
+  deletePtr(constraintsPDF);
+  deletePtr(auxilliaryConstraintsPDF);
+  deletePtr(gausConstraintsPDF);
 }
 void HMassConstraint::destroyCompoundPdf(){
-  if (PDF!=0) delete PDF;
+  deletePtr(PDF);
 }
 
 void HMassConstraint::setPtEtaCuts(
@@ -940,7 +940,7 @@ void HMassConstraint::fit(){
   RooArgSet conditionals;
   conditionals.add(*(m[2]));
 
-  if (fitResult!=0) delete fitResult;
+  deletePtr(fitResult);
 
   // Hold the factory parameters tight!
   if (hvvFactory!=0){ hvvFactory->makeParamsConst(true); hvvFactory->makeCouplingsConst(true); }
@@ -954,11 +954,16 @@ void HMassConstraint::fit(){
   cout << "HMassConstraint::fit: Attempting first fit." << endl;
 #endif
   if (data!=0){
-    fitResult = PDF->fitTo(*data, RooFit::ConditionalObservables(conditionals), RooFit::Save(true)/*, RooFit::PrintLevel(-1)*/);
+    fitResult = PDF->fitTo(*data, RooFit::ConditionalObservables(conditionals), RooFit::Save(true), RooFit::Hesse(true)/*, RooFit::PrintLevel(-1)*/);
     fitStatus = fitResult->status();
   }
 #if hmc_debug==1
   cout << "HMassConstraint::fit: First fit attempted." << endl;
+  if (fitResult!=0){
+    cout << "Fit status is " << fitStatus << endl;
+    cout << "Fit properties:" << endl;
+    fitResult->Print("v");
+  }
 #endif
   // If the default strategy fails, decrement it until there is no strategy.
   while (fitStatus<minimizerSuccess){
@@ -967,10 +972,10 @@ void HMassConstraint::fit(){
     //cout << "Fit did not converge or was not valid. Status changed from " << fitStrategy << " to " << fitStrategy_final << " to retry." << endl;
 
     vector<pair<const reco::Candidate*, const pat::PFParticle*>> pseudoinput = inputRaw_Fermion_FSR;
-    addDaughters(pseudoinput, true); if(data!=0) delete data; data = getDataset();
-    if(fitResult!=0) delete fitResult;
+    addDaughters(pseudoinput, true); deletePtr(data); data = getDataset();
+    deletePtr(fitResult);
     if (data!=0){
-      fitResult = PDF->fitTo(*data, RooFit::ConditionalObservables(conditionals), RooFit::Save(true)/*, RooFit::PrintLevel(-1)*/);
+      fitResult = PDF->fitTo(*data, RooFit::ConditionalObservables(conditionals), RooFit::Save(true), RooFit::Hesse(true)/*, RooFit::PrintLevel(-1)*/);
       fitStatus = fitResult->status();
     }
     else fitStatus=-99;
@@ -983,10 +988,10 @@ void HMassConstraint::fit(){
     //cout << "Fit did not converge. Status changed from " << fitStrategy << " to " << fitStrategy_final << " to retry." << endl;
 
     vector<pair<const reco::Candidate*, const pat::PFParticle*>> pseudoinput = inputRaw_Fermion_FSR;
-    addDaughters(pseudoinput, true); if (data!=0) delete data; data = getDataset();
-    if (fitResult!=0) delete fitResult;
+    addDaughters(pseudoinput, true); deletePtr(data); data = getDataset();
+    deletePtr(fitResult);
     if (data!=0){
-      fitResult = PDF->fitTo(*data, RooFit::ConditionalObservables(conditionals), RooFit::Save(true)/*, RooFit::PrintLevel(-1)*/);
+      fitResult = PDF->fitTo(*data, RooFit::ConditionalObservables(conditionals), RooFit::Save(true), RooFit::Hesse(true)/*, RooFit::PrintLevel(-1)*/);
       fitStatus = fitResult->status();
     }
     else fitStatus=-99;
@@ -1000,7 +1005,7 @@ void HMassConstraint::fit(){
   // Relax the factory parameters.
   if (hvvFactory!=0){ hvvFactory->makeParamsConst(false); hvvFactory->makeCouplingsConst(false); }
   else if (xvvFactory!=0){ xvvFactory->makeParamsConst(false); xvvFactory->makeCouplingsConst(false); }
-  if (data!=0) delete data;
+  deletePtr(data);
 
   cout << "Number of columns in the covariance matrix is " << fitCovMatrix.GetNcols() << endl;
   // LEFT HERE
@@ -1011,13 +1016,13 @@ void HMassConstraint::sortGetCovarianceMatrix(double(&momCov)[9], const reco::Ca
   const reco::GsfElectron* electron = dynamic_cast<const reco::GsfElectron*>(particle);
   const reco::PFCandidate* pfcand = dynamic_cast<const reco::PFCandidate*>(particle);
   const pat::Muon* muon = dynamic_cast<const pat::Muon*>(particle);
-  const pat::Electron* pat_electron = dynamic_cast<const pat::Electron*>(particle);
+  //const pat::Electron* pat_electron = dynamic_cast<const pat::Electron*>(particle);
   const pat::Jet* jet = dynamic_cast<const pat::Jet*>(particle);
 
   if (jet!=0) return getCovarianceMatrix(momCov, jet);
   else if (muon!=0) return getCovarianceMatrix(momCov, muon);
   else if (pfcand!=0) return getCovarianceMatrix(momCov, pfcand); // This is a general PFCandidate, which is mostly for use as a photon
-  else if (pat_electron!=0) return getCovarianceMatrix(momCov, pat_electron);
+  //else if (pat_electron!=0) return getCovarianceMatrix(momCov, pat_electron);
   else if (electron!=0) return getCovarianceMatrix(momCov, electron);
   else{
 #if hmc_debug==1
@@ -1151,136 +1156,7 @@ void HMassConstraint::getCovarianceMatrix(double (&momCov)[9], const reco::GsfEl
     // Everything else remains 0.
   }
 }
-void HMassConstraint::getCovarianceMatrix(double(&momCov)[9], const pat::Electron* particle){
-  for (int i=0; i<9; i++) momCov[i]=0.;
-
-#if hmc_debug==1
-  cout << "Begin HMassConstraint::getCovarianceMatrix(const pat::Electron* particle) with argument " << particle << endl;
-#endif
-
-  double lambda = piovertwo_val - particle->theta();
-  double energyerr = 0;
-  const reco::GsfElectron* origin = dynamic_cast<const reco::GsfElectron*>(particle->originalObject());
-  if (origin!=0) getCovarianceMatrix(momCov, origin);
-  /*
-  if (particle->core()->ecalDrivenSeed()) energyerr = particle->p4Error(reco::GsfElectron::P4_COMBINATION);
-  else{
-    double ecalEnergy = particle->correctedEcalEnergy();
-    double err2 = 0.;
-    if (particle->isEB()){
-      err2 += (5.24e-02*5.24e-02)/ecalEnergy;
-      err2 += (2.01e-01*2.01e-01)/(ecalEnergy*ecalEnergy);
-      err2 += 1.00e-02*1.00e-02;
-    }
-    else if (particle->isEE()){
-      err2 += (1.46e-01*1.46e-01)/ecalEnergy;
-      err2 += (9.21e-01*9.21e-01)/(ecalEnergy*ecalEnergy);
-      err2 += 1.94e-03*1.94e-03;
-    }
-    energyerr = ecalEnergy * sqrt(err2);
-  }
-  */
-#if hmc_debug==1
-  cout << "HMassConstraint::getCovarianceMatrix(const pat::Electron* particle): Energy error before GsfTrack: " << energyerr << endl;
-#endif
-
-  double pterr = energyerr*cos(lambda);
-  const GsfTrack* gsftrack = &(*(particle->gsfTrack()));
-  if (gsftrack!=0){
-#if hmc_debug==1
-    cout << "HMassConstraint::getCovarianceMatrix(const pat::Electron* particle): GsfTrack " << gsftrack << " found!" << endl;
-#endif
-    double pterr_uncorrected = gsftrack->ptModeError();
-    if (pterr_uncorrected==0.) pterr_uncorrected = pterr;
-    double correction = 1.;
-    if (pterr_uncorrected!=0.) correction = pow(pterr/pterr_uncorrected, 2);
-
-    double trackCov[GsfTrack::dimensionMode*GsfTrack::dimensionMode];
-    for (int ix=0; ix<GsfTrack::dimensionMode; ix++){
-      for (int iy=0; iy<GsfTrack::dimensionMode; iy++){
-        if (iy>=ix){
-          trackCov[GsfTrack::dimensionMode*ix+iy] = gsftrack->covarianceMode(ix, iy);
-          if ((ix==TrackBase::i_qoverp || ix==TrackBase::i_lambda) && (iy==TrackBase::i_qoverp || iy==TrackBase::i_lambda)) trackCov[GsfTrack::dimensionMode*ix+iy] *= correction;
-          else if ((ix==TrackBase::i_qoverp || ix==TrackBase::i_lambda) || (iy==TrackBase::i_qoverp || iy==TrackBase::i_lambda)) trackCov[GsfTrack::dimensionMode*ix+iy] *= sqrt(correction);
-        }
-        else trackCov[GsfTrack::dimensionMode*ix+iy] = trackCov[GsfTrack::dimensionMode*iy+ix];
-      }
-    }
-
-    double q = particle->charge();
-    double qoverp = q/particle->p();
-    double d_pT_d_qoverp;
-    if (q==0.){
-      q=1.;
-      qoverp = q/particle->p();
-      d_pT_d_qoverp = 1e12; // (1000 TeV)**2
-    }
-    else d_pT_d_qoverp = -q*cos(lambda)/pow(qoverp, 2); // ==-p*pT/q
-    const double d_pT_d_lambda = -q*sin(lambda)/qoverp; // == -pz
-    const double d_pT_d_phi = 0;
-    const double d_lambda_d_qoverp = 0.;
-    const double d_lambda_d_lambda = 1;
-    const double d_lambda_d_phi = 0;
-    const double d_phi_d_qoverp = 0;
-    const double d_phi_d_lambda = 0;
-    const double d_phi_d_phi = 1;
-
-    momCov[3*0+0] = pterr; // pT, pT, no need to re-calculate
-    momCov[3*0+1] = // pT, lambda
-      d_pT_d_qoverp*d_lambda_d_qoverp * trackCov[GsfTrack::dimensionMode*TrackBase::i_qoverp + TrackBase::i_qoverp] +
-      d_pT_d_lambda*d_lambda_d_lambda * trackCov[GsfTrack::dimensionMode*TrackBase::i_lambda + TrackBase::i_lambda] +
-      d_pT_d_phi*d_lambda_d_phi * trackCov[GsfTrack::dimensionMode*TrackBase::i_phi + TrackBase::i_phi] +
-      (d_pT_d_qoverp*d_lambda_d_lambda + d_pT_d_lambda*d_lambda_d_qoverp) * trackCov[GsfTrack::dimensionMode*TrackBase::i_qoverp + TrackBase::i_lambda] +
-      (d_pT_d_qoverp*d_lambda_d_phi + d_pT_d_phi*d_lambda_d_qoverp) * trackCov[GsfTrack::dimensionMode*TrackBase::i_qoverp + TrackBase::i_phi] +
-      (d_pT_d_lambda*d_lambda_d_phi + d_pT_d_phi*d_lambda_d_lambda) * trackCov[GsfTrack::dimensionMode*TrackBase::i_lambda + TrackBase::i_phi]
-      ;
-    momCov[3*0+2] = // pT, phi
-      d_pT_d_qoverp*d_phi_d_qoverp * trackCov[GsfTrack::dimensionMode*TrackBase::i_qoverp + TrackBase::i_qoverp] +
-      d_pT_d_lambda*d_phi_d_lambda * trackCov[GsfTrack::dimensionMode*TrackBase::i_lambda + TrackBase::i_lambda] +
-      d_pT_d_phi*d_phi_d_phi * trackCov[GsfTrack::dimensionMode*TrackBase::i_phi + TrackBase::i_phi] +
-      (d_pT_d_qoverp*d_phi_d_lambda + d_pT_d_lambda*d_phi_d_qoverp) * trackCov[GsfTrack::dimensionMode*TrackBase::i_qoverp + TrackBase::i_lambda] +
-      (d_pT_d_qoverp*d_phi_d_phi + d_pT_d_phi*d_phi_d_qoverp) * trackCov[GsfTrack::dimensionMode*TrackBase::i_qoverp + TrackBase::i_phi] +
-      (d_pT_d_lambda*d_phi_d_phi + d_pT_d_phi*d_phi_d_lambda) * trackCov[GsfTrack::dimensionMode*TrackBase::i_lambda + TrackBase::i_phi]
-      ;
-
-    momCov[3*1+0] = momCov[3*0+1];// lambda, pT
-    momCov[3*1+1] = // lambda, lambda
-      d_lambda_d_qoverp*d_lambda_d_qoverp * trackCov[GsfTrack::dimensionMode*TrackBase::i_qoverp + TrackBase::i_qoverp] +
-      d_lambda_d_lambda*d_lambda_d_lambda * trackCov[GsfTrack::dimensionMode*TrackBase::i_lambda + TrackBase::i_lambda] +
-      d_lambda_d_phi*d_lambda_d_phi * trackCov[GsfTrack::dimensionMode*TrackBase::i_phi + TrackBase::i_phi] +
-      2.*d_lambda_d_qoverp*d_lambda_d_lambda * trackCov[GsfTrack::dimensionMode*TrackBase::i_qoverp + TrackBase::i_lambda] +
-      2.*d_lambda_d_qoverp*d_lambda_d_phi * trackCov[GsfTrack::dimensionMode*TrackBase::i_qoverp + TrackBase::i_phi] +
-      2.*d_lambda_d_lambda*d_lambda_d_phi * trackCov[GsfTrack::dimensionMode*TrackBase::i_lambda + TrackBase::i_phi]
-      ;
-    momCov[3*1+2] = // lambda, phi
-      d_pT_d_qoverp*d_phi_d_qoverp * trackCov[GsfTrack::dimensionMode*TrackBase::i_qoverp + TrackBase::i_qoverp] +
-      d_pT_d_lambda*d_phi_d_lambda * trackCov[GsfTrack::dimensionMode*TrackBase::i_lambda + TrackBase::i_lambda] +
-      d_pT_d_phi*d_phi_d_phi * trackCov[GsfTrack::dimensionMode*TrackBase::i_phi + TrackBase::i_phi] +
-      (d_pT_d_qoverp*d_phi_d_lambda + d_pT_d_lambda*d_phi_d_qoverp) * trackCov[GsfTrack::dimensionMode*TrackBase::i_qoverp + TrackBase::i_lambda] +
-      (d_pT_d_qoverp*d_phi_d_phi + d_pT_d_phi*d_phi_d_qoverp) * trackCov[GsfTrack::dimensionMode*TrackBase::i_qoverp + TrackBase::i_phi] +
-      (d_pT_d_lambda*d_phi_d_phi + d_pT_d_phi*d_phi_d_lambda) * trackCov[GsfTrack::dimensionMode*TrackBase::i_lambda + TrackBase::i_phi]
-      ;
-
-    momCov[3*2+0] = momCov[3*0+2];// phi, pT
-    momCov[3*2+1] = momCov[3*1+2];// phi, lambda
-    momCov[3*2+2] = // phi, phi
-      d_phi_d_qoverp*d_phi_d_qoverp * trackCov[GsfTrack::dimensionMode*TrackBase::i_qoverp + TrackBase::i_qoverp] +
-      d_phi_d_lambda*d_phi_d_lambda * trackCov[GsfTrack::dimensionMode*TrackBase::i_lambda + TrackBase::i_lambda] +
-      d_phi_d_phi*d_phi_d_phi * trackCov[GsfTrack::dimensionMode*TrackBase::i_phi + TrackBase::i_phi] +
-      2.* d_phi_d_qoverp*d_phi_d_lambda * trackCov[GsfTrack::dimensionMode*TrackBase::i_qoverp + TrackBase::i_lambda] +
-      2.* d_phi_d_qoverp*d_phi_d_phi * trackCov[GsfTrack::dimensionMode*TrackBase::i_qoverp + TrackBase::i_phi] +
-      2.* d_phi_d_lambda*d_phi_d_phi * trackCov[GsfTrack::dimensionMode*TrackBase::i_lambda + TrackBase::i_phi]
-      ;
-  }
-  else{
-#if hmc_debug==1
-    cout << "HMassConstraint::getCovarianceMatrix(const pat::Electron* particle): No GsfTrack present." << endl;
-#endif
-    momCov[3*0+0] = pow(pterr, 2);
-    // Everything else remains 0.
-  }
-}
-void HMassConstraint::getCovarianceMatrix(double(&momCov)[9], const pat::Muon* particle){
+void HMassConstraint::getCovarianceMatrix(double (&momCov)[9], const pat::Muon* particle){
   for(int i=0;i<9;i++) momCov[i]=0.;
 
   const double lambda = piovertwo_val - particle->theta();
