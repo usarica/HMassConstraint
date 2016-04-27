@@ -14,9 +14,6 @@
 #include <vector>
 #include "TMath.h"
 
-using namespace TMath;
-using namespace std;
-
 
 class RooGaussianMomConstraint : public RooAbsPdf {
 public:
@@ -24,6 +21,11 @@ public:
   enum CoordinateSystem{
     kXYZ,
     kRhoLambdaPhi // == pT, Lambda, Phi
+  };
+  enum CoordinatePrimes{
+    prime_var1=2,
+    prime_var2=3,
+    prime_var3=5
   };
 
   RooGaussianMomConstraint(){};
@@ -48,12 +50,6 @@ public:
 
 protected:
 
-  enum CoordinatePrimes{
-    prime_var1=2,
-    prime_var2=3,
-    prime_var3=5
-  };
-
   RooListProxy variables;
   RooListProxy means;
   RooListProxy matrixElement;
@@ -63,6 +59,9 @@ protected:
   virtual void setProxyList(const RooArgList& args, RooListProxy& target, Int_t checkDim=-1);
 
   virtual Double_t computeGaussian(const Int_t code) const;
+
+  virtual Double_t computeCaseXYZ(const Int_t code) const;
+  virtual Double_t computeCaseRhoLambdaPhi(const Int_t code) const;
 
 };
 

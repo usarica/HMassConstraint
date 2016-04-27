@@ -17,8 +17,8 @@
 #include "RooExponential.h"
 #include "RooProdPdf.h"
 #include "RooDataSet.h"
-#include "RooMinuit.h"
 #include "RooFormulaVar.h"
+#include "RooAbsPdf.h"
 #include "RooProdPdf.h"
 #include "RooGenericPdf.h"
 #include "RooFitResult.h"
@@ -68,7 +68,7 @@ namespace HMCtoolkit{
 class HMassConstraint {
 public:
 
-  enum FitStrategy{
+  enum FitMomentumStrategy{
     FullCov_All_pTLambdaPhi,
     FullCov_All_pTLambda,
     FullCov_All_pTPhi,
@@ -112,7 +112,14 @@ public:
     CovDiagonals_OnlyFSR_Lambda,
     CovDiagonals_OnlyFSR_Phi,
 
-    nFitStrategies // This is actually not a strategy, just a number!
+    nFitMomentumStrategies // This is actually not a strategy, just a number!
+  };
+  enum FitVVStrategy{
+    Fit_All_V1V2,
+    Fit_All_V1, // = Fit_WorstTwo_V1
+    Fit_All_V2, // = Fit_WorstTwo_V2
+
+    nFitVVStrategies // This is actually not a strategy, just a number!
   };
 
   // Member functions
@@ -146,17 +153,20 @@ public:
   //void reset(); // { if(fit_res!=0) delete fit_res; }
 
   // Make sure each strategy is implemented correctly. Affects the behavior of covariance matrix extractions in addDaughters.
-  void setFitStrategy(HMassConstraint::FitStrategy fitStrategy_=HMassConstraint::FullCov_All_pT/*FullCov_All_pTLambdaPhi*/);
-  HMassConstraint::FitStrategy getFitStrategy();
-  // Add the fermion-FSR pairs, FSR-being per-lepton. fitRetry=true prevents clearing of the protected objects container and allows another fit through different strategies in case the initial fit fails.
-  void addDaughters(std::vector<pair<const reco::Candidate*, const pat::PFParticle*>>& FermionWithFSR, bool fitRetry=false); // To set the Lepton and photon arrays in a pair form. Pass null-pointer if the photon does not exist.
-  // Do the fit, retry if unsuccessful.
-  void fit();
+  void setFitMomentumStrategy(HMassConstraint::FitMomentumStrategy fitMomStrategy_=HMassConstraint::CovDiagonals_All_pT);
+  void setFitVVStrategy(HMassConstraint::FitVVStrategy fitVVStrategy_=HMassConstraint::Fit_All_V1);
+  HMassConstraint::FitMomentumStrategy getFitMomentumStrategy();
+
+  // Do the fit for the fermion-FSR pairs, FSR-being per-fermion.
+  void fitTo(std::vector<pair<const reco::Candidate*, const pat::PFParticle*>>& FermionWithFSR);
 
   RooAbsPdf* getPDF();
   SpinPdfFactory* getPDFFactory();
 
-  Double_t getMassError(Int_t iZ) const; // iZ==0 is m1, iZ==1 is m2, iZ==2 is m12.
+  Double_t getRefittedMassError(Int_t imass) const; // imass==0 is m1, imass==1 is m2, imass==2 is m12.
+  Double_t getRefittedMass(Int_t imass) const;
+  TLorentzVector getRefittedMomentum(Int_t iZ, Int_t iferm, Int_t fsrindex) const;
+
 
 protected:
 
@@ -168,8 +178,10 @@ protected:
   const Int_t intCodeStart;
   TString jecString;
 
-  HMassConstraint::FitStrategy fitStrategy;
-  HMassConstraint::FitStrategy fitStrategy_final;
+  HMassConstraint::FitMomentumStrategy fitMomStrategy;
+  HMassConstraint::FitMomentumStrategy fitMomStrategy_final;
+
+  HMassConstraint::FitVVStrategy fitVVStrategy; // There is no "final" counterpart to this one. Decrementation or incrementation is not allowed due to physics interest/reasons!
 
   Double_t pTcut_muon;
   Double_t lambdacut_muon;
@@ -261,10 +273,20 @@ protected:
   virtual void constructCompoundPdf();
   virtual void destroyCompoundPdf();
 
-  void setWorkingFitStrategy(HMassConstraint::FitStrategy fitStrategy_);
-  void testFitStrategy(Int_t& useFullCov, Int_t& FermFSRType, Int_t& fitpT, Int_t& fitlambda, Int_t& fitphi) const;
-  void decrementStrategy(HMassConstraint::FitStrategy& strategy_);
-  void incrementStrategy(HMassConstraint::FitStrategy& strategy_);
+  // Add the fermion-FSR pairs, FSR-being per-fermion. fitRetry=true prevents clearing of the protected objects container and allows another fit through different strategies in case the initial fit fails.
+  void addDaughters(std::vector<pair<const reco::Candidate*, const pat::PFParticle*>>& FermionWithFSR, bool fitRetry=false); // To set the Lepton and photon arrays in a pair form. Pass null-pointer if the photon does not exist.
+  // Do the fit, retry if unsuccessful.
+  RooDataSet* getDataset() const;
+  void fit();
+
+  // Momentum strategy functions
+  void setWorkingFitMomentumStrategy(HMassConstraint::FitMomentumStrategy fitMomStrategy_);
+  void testFitMomentumStrategy(Int_t& useFullCov, Int_t& FermFSRType, Int_t& fitpT, Int_t& fitlambda, Int_t& fitphi) const;
+  void decrementMomentumStrategy(HMassConstraint::FitMomentumStrategy& strategy_);
+  void incrementMomentumStrategy(HMassConstraint::FitMomentumStrategy& strategy_);
+  // VV strategy functions
+  void testFitVVStrategy(Int_t& fitV1, Int_t& fitV2) const;
+
 
   // Overloaded functions to compute input block-diagonal C(pT, lambda, phi)
   void sortGetCovarianceMatrix(double (&momCov)[9], const reco::Candidate* particle);
@@ -280,7 +302,9 @@ protected:
   void strategicInvertCovarianceMatrix(const Int_t useFullCov, Int_t fitpT, Int_t fitlambda, Int_t fitphi, double (&momCov)[9]);
   void setInverseCovarianceMatrix(Int_t iZ, Int_t iferm, Int_t fsrindex, Double_t momCov[9]);
 
-  RooDataSet* getDataset() const;
+  bool standardOrderedFinalCovarianceMatrix(const RooArgList& pars); // Re-order the covariance matrix from the fit, expand as necessary
+  Int_t fitParameterCorrespondance(RooRealVar* par);
+
 
   // Derivative functions to use in contracting final C(pT, lambda, phi) to sigma(m1), sigma(m2) or sigma(m12)
   Double_t d_Ek_d_pTk(Int_t kZ, Int_t kferm, Int_t fsrindex) const;
@@ -289,6 +313,11 @@ protected:
   Double_t d_pjk_d_lambdak(Int_t kZ, Int_t kferm, Int_t fsrindex, Int_t j) const;
   Double_t d_Ek_d_phik(Int_t kZ, Int_t kferm, Int_t fsrindex) const;
   Double_t d_pjk_d_phik(Int_t kZ, Int_t kferm, Int_t fsrindex, Int_t j) const;
+
+  Double_t d_m123_d_pTk(Int_t imass, Int_t kZ, Int_t kferm, Int_t fsrindex) const;
+  Double_t d_m123_d_lambdak(Int_t imass, Int_t kZ, Int_t kferm, Int_t fsrindex) const;
+  Double_t d_m123_d_phik(Int_t imass, Int_t kZ, Int_t kferm, Int_t fsrindex) const;
+
 };
 
 #endif
