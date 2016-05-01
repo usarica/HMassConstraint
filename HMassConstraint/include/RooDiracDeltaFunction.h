@@ -21,8 +21,8 @@ public:
   RooDiracDeltaFunction(){};
   RooDiracDeltaFunction(
     const char* name, const char* title,
-    const RooAbsReal& var_,
-    const RooAbsReal& ref_
+    RooAbsReal& var_,
+    RooAbsReal& ref_
     );
   RooDiracDeltaFunction(const RooDiracDeltaFunction& other, const char* name=0);
   inline virtual ~RooDiracDeltaFunction(){}

@@ -27,6 +27,7 @@
 #include <HMassConstraint/HMassConstraint/include/TensorPdfFactory_HVV.h>
 #include <HMassConstraint/HMassConstraint/include/RooRelBWProduct.h>
 #include <HMassConstraint/HMassConstraint/include/RooGaussianMomConstraint.h>
+#include <HMassConstraint/HMassConstraint/include/RooDiracDeltaFunction.h>
 
 #include <DataFormats/TrackReco/interface/TrackBase.h>
 #include <DataFormats/TrackReco/interface/Track.h>
@@ -45,7 +46,7 @@
 
 
 #ifndef hmc_debug
-#define hmc_debug 1
+#define hmc_debug 0
 #endif
 
 
@@ -161,8 +162,8 @@ public:
   void setFastPDF(bool useFastPDF_=false);
 
   // Make sure each strategy is implemented correctly. Affects the behavior of covariance matrix extractions in addDaughters.
-  void setFitMomentumStrategy(HMassConstraint::FitMomentumStrategy fitMomStrategy_=HMassConstraint::CovDiagonals_All_pT);
-  void setFitVVStrategy(HMassConstraint::FitVVStrategy fitVVStrategy_=HMassConstraint::Fit_All_V1);
+  void setFitMomentumStrategy(HMassConstraint::FitMomentumStrategy fitMomStrategy_=HMassConstraint::FullCov_All_pTLambdaPhi/*CovDiagonals_All_pT*/);
+  void setFitVVStrategy(HMassConstraint::FitVVStrategy fitVVStrategy_=HMassConstraint::Fit_All_V1V2);
   HMassConstraint::FitMomentumStrategy getFitMomentumStrategy();
 
   // Do the fit for the fermion-FSR pairs, FSR-being per-fermion.
@@ -220,9 +221,17 @@ protected:
   RooRealVar* pT_fsr[2][2];
   RooRealVar* lambda_fsr[2][2];
   RooRealVar* phi_fsr[2][2];
+
   RooRealVar* pTbar_fsr[2][2];
   RooRealVar* lambdabar_fsr[2][2];
   RooRealVar* phibar_fsr[2][2];
+
+  RooRealVar* pTobs_ferm[2][2];
+  RooRealVar* lambdaobs_ferm[2][2];
+  RooRealVar* phiobs_ferm[2][2];
+  RooRealVar* pTobs_fsr[2][2];
+  RooRealVar* lambdaobs_fsr[2][2];
+  RooRealVar* phiobs_fsr[2][2];
 
   RooRealVar* invcov_ferm[2][2][9];
   RooRealVar* invcov_fsr[2][2][9];
@@ -257,6 +266,13 @@ protected:
 
   std::vector<pair<const reco::Candidate*, const pat::PFParticle*>> inputRaw_Fermion_FSR;
 
+  RooDiracDeltaFunction* pTDeltaFcn_ferm[2][2];
+  RooDiracDeltaFunction* lambdaDeltaFcn_ferm[2][2];
+  RooDiracDeltaFunction* phiDeltaFcn_ferm[2][2];
+  RooDiracDeltaFunction* pTDeltaFcn_fsr[2][2];
+  RooDiracDeltaFunction* lambdaDeltaFcn_fsr[2][2];
+  RooDiracDeltaFunction* phiDeltaFcn_fsr[2][2];
+  RooProdPdf* DiracDeltaPDF;
   SpinPdfFactory* pdfFactory;
   ScalarPdfFactory_ggH* hvvFactory;
   TensorPdfFactory_HVV* xvvFactory;
@@ -277,6 +293,9 @@ protected:
   // Member functions
   virtual void constructVariables();
   virtual void destroyVariables();
+
+  virtual void constructDeltaFunctions();
+  virtual void destroyDeltaFunctions();
 
   virtual void constructPdfFactory();
   virtual void destroyPdfFactory();
