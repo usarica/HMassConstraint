@@ -25,6 +25,7 @@
 
 #include <HMassConstraint/HMassConstraint/include/ScalarPdfFactory_ggH.h>
 #include <HMassConstraint/HMassConstraint/include/TensorPdfFactory_HVV.h>
+#include <HMassConstraint/HMassConstraint/include/RooRelBWProduct.h>
 #include <HMassConstraint/HMassConstraint/include/RooGaussianMomConstraint.h>
 
 #include <DataFormats/TrackReco/interface/TrackBase.h>
@@ -41,6 +42,11 @@
 
 #include <DataFormats/ParticleFlowCandidate/interface/PFCandidate.h>
 #include <RecoParticleFlow/PFClusterTools/interface/PFEnergyResolution.h>
+
+
+#ifndef hmc_debug
+#define hmc_debug 1
+#endif
 
 
 namespace HMCtoolkit{
@@ -150,7 +156,9 @@ public:
     Double_t m2cut_=12.,
     Double_t mFFcut_=4.
     );
-  //void reset(); // { if(fit_res!=0) delete fit_res; }
+
+  // Set PDF to fast or thorough
+  void setFastPDF(bool useFastPDF_=false);
 
   // Make sure each strategy is implemented correctly. Affects the behavior of covariance matrix extractions in addDaughters.
   void setFitMomentumStrategy(HMassConstraint::FitMomentumStrategy fitMomStrategy_=HMassConstraint::CovDiagonals_All_pT);
@@ -177,6 +185,7 @@ protected:
   const Int_t X_spin;
   const Int_t intCodeStart;
   TString jecString;
+  bool useFastPDF;
 
   HMassConstraint::FitMomentumStrategy fitMomStrategy;
   HMassConstraint::FitMomentumStrategy fitMomStrategy_final;
@@ -252,10 +261,15 @@ protected:
   ScalarPdfFactory_ggH* hvvFactory;
   TensorPdfFactory_HVV* xvvFactory;
   RooSpin* spinPDF;
+  RooRelBWProduct* bwProdPDF; // For fast PDF
+#if hmc_debug==1
+  RooGenericPdf* simpleBWPDF[2]; // For testing the fast PDF
+#endif
   RooGaussianMomConstraint* gausConstraintsPDF[2][2][2];
   RooGenericPdf* auxilliaryConstraintsPDF;
   RooProdPdf* constraintsPDF;
   RooProdPdf* PDF;
+  RooProdPdf* fastPDF;
 
   RooFitResult* fitResult;
   TMatrixDSym fitCovMatrix;
@@ -276,6 +290,7 @@ protected:
   // Add the fermion-FSR pairs, FSR-being per-fermion. fitRetry=true prevents clearing of the protected objects container and allows another fit through different strategies in case the initial fit fails.
   void addDaughters(std::vector<pair<const reco::Candidate*, const pat::PFParticle*>>& FermionWithFSR, bool fitRetry=false); // To set the Lepton and photon arrays in a pair form. Pass null-pointer if the photon does not exist.
   // Do the fit, retry if unsuccessful.
+  RooArgSet getDataVariables() const;
   RooDataSet* getDataset() const;
   void fit();
 
