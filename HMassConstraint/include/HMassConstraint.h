@@ -46,7 +46,7 @@
 
 
 #ifndef hmc_debug
-#define hmc_debug 0
+#define hmc_debug 1
 #endif
 
 
@@ -153,9 +153,12 @@ public:
     Double_t etacut_fsr_=2.4
     );
   void setM1M2Cuts(
-    Double_t m1cut_=40.,
-    Double_t m2cut_=12.,
-    Double_t mFFcut_=4.
+    Double_t m1lowcut_=40.,
+    Double_t m2lowcut_=12.,
+    Double_t m1highcut_=120.,
+    Double_t m2highcut_=120.,
+    Double_t mFFOScut_=4.,
+    Double_t mFFSScut_=4.
     );
 
   // Set PDF to fast or thorough
@@ -201,9 +204,12 @@ protected:
   Double_t lambdacut_jet;
   Double_t pTcut_fsr;
   Double_t lambdacut_fsr;
-  RooRealVar* m1cut;
-  RooRealVar* m2cut;
-  RooRealVar* mFFcut;
+  RooRealVar* m1lowcut;
+  RooRealVar* m2lowcut;
+  RooRealVar* m1highcut;
+  RooRealVar* m2highcut;
+  RooRealVar* mFFOScut;
+  RooRealVar* mFFSScut;
 
   RooRealVar* varZero;
   RooRealVar* varOne;
@@ -255,7 +261,7 @@ protected:
   RooFormulaVar* massCuts;
 
   RooFormulaVar* m[3];
-  RooFormulaVar* mAB[2];
+  RooFormulaVar* mAB[4];
   RooRealVar* h1;
   RooRealVar* h2;
   RooRealVar* hs;
@@ -266,6 +272,7 @@ protected:
 
   std::vector<pair<const reco::Candidate*, const pat::PFParticle*>> inputRaw_Fermion_FSR;
 
+  // Delta functions of bar-obs
   RooDiracDeltaFunction* pTDeltaFcn_ferm[2][2];
   RooDiracDeltaFunction* lambdaDeltaFcn_ferm[2][2];
   RooDiracDeltaFunction* phiDeltaFcn_ferm[2][2];
@@ -273,17 +280,20 @@ protected:
   RooDiracDeltaFunction* lambdaDeltaFcn_fsr[2][2];
   RooDiracDeltaFunction* phiDeltaFcn_fsr[2][2];
   RooProdPdf* DiracDeltaPDF;
+  // J^CP PDFs
   SpinPdfFactory* pdfFactory;
   ScalarPdfFactory_ggH* hvvFactory;
   TensorPdfFactory_HVV* xvvFactory;
   RooSpin* spinPDF;
+  // Fast propagator PDF
   RooRelBWProduct* bwProdPDF; // For fast PDF
-#if hmc_debug==1
-  RooGenericPdf* simpleBWPDF[2]; // For testing the fast PDF
-#endif
+  // PDF of constraintson {pT, lambda, phi}_i of fermion i
   RooGaussianMomConstraint* gausConstraintsPDF[2][2][2];
+  // Other Heaviside functions
   RooGenericPdf* auxilliaryConstraintsPDF;
+  // Products of constraints
   RooProdPdf* constraintsPDF;
+  // Products constrantsPDF*auxilliaryConstraintsPDF*spinPDF or constrantsPDF*auxilliaryConstraintsPDF*bwProdPDF
   RooProdPdf* PDF;
   RooProdPdf* fastPDF;
 

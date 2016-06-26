@@ -75,9 +75,12 @@ void HMassConstraint::constructVariables(){
   varZero = new RooRealVar("varZero", "", 0.);
   varOne = new RooRealVar("varOne", "", 1.);
 
-  m1cut = new RooRealVar("m1cut", "", 0., 0., sqrts);
-  m2cut = new RooRealVar("m2cut", "", 0., 0., sqrts);
-  mFFcut = new RooRealVar("mFFcut", "", 0., 0., sqrts);
+  m1lowcut = new RooRealVar("m1lowcut", "", 0., 0., sqrts);
+  m2lowcut = new RooRealVar("m2lowcut", "", 0., 0., sqrts);
+  m1highcut = new RooRealVar("m1highcut", "", sqrts, 0., sqrts);
+  m2highcut = new RooRealVar("m2highcut", "", sqrts, 0., sqrts);
+  mFFOScut = new RooRealVar("mFFOScut", "", 0., 0., sqrts);
+  mFFSScut = new RooRealVar("mFFSScut", "", 0., 0., sqrts);
 
   RooArgList m12_args;
   for (int iZ=0; iZ<2; iZ++){
@@ -168,6 +171,8 @@ void HMassConstraint::constructVariables(){
   // Construct mA, mB
   RooArgList mA_args;
   RooArgList mB_args;
+  RooArgList mAp_args;
+  RooArgList mBp_args;
   for (int iZ=0; iZ<2; iZ++){
     int iferm = 0;
     if (iZ==0){
@@ -182,6 +187,11 @@ void HMassConstraint::constructVariables(){
       mB_args.add(*(py_Hdaughter[iZ][iferm]));
       mB_args.add(*(pz_Hdaughter[iZ][iferm]));
     }
+    mAp_args.add(*(E_Hdaughter[iZ][iferm]));
+    mAp_args.add(*(px_Hdaughter[iZ][iferm]));
+    mAp_args.add(*(py_Hdaughter[iZ][iferm]));
+    mAp_args.add(*(pz_Hdaughter[iZ][iferm]));
+
     iferm = 1;
     if (iZ==0){
       mA_args.add(*(E_Hdaughter[1-iZ][iferm]));
@@ -195,11 +205,15 @@ void HMassConstraint::constructVariables(){
       mB_args.add(*(py_Hdaughter[1-iZ][iferm]));
       mB_args.add(*(pz_Hdaughter[1-iZ][iferm]));
     }
+    mBp_args.add(*(E_Hdaughter[1-iZ][iferm]));
+    mBp_args.add(*(px_Hdaughter[1-iZ][iferm]));
+    mBp_args.add(*(py_Hdaughter[1-iZ][iferm]));
+    mBp_args.add(*(pz_Hdaughter[1-iZ][iferm]));
   }
-  mAB[0] = new RooFormulaVar("mARefit", "sqrt( TMath::Max(1e-15, pow(@0+@4,2)-pow(@1+@5,2)-pow(@2+@6,2)-pow(@3+@7,2)) )", mA_args);
-  mAB[1] = new RooFormulaVar("mBRefit", "sqrt( TMath::Max(1e-15, pow(@0+@4,2)-pow(@1+@5,2)-pow(@2+@6,2)-pow(@3+@7,2)) )", mB_args);
-
-  massCuts = new RooFormulaVar("mABCutParameterization", "( (@0>@4 && @1>@4 && @2>@5 && @3>@6) ? 1. : 1.e-15)", RooArgList(*(mAB[0]), *(mAB[1]), *(m[0]), *(m[1]), *mFFcut, *m1cut, *m2cut));
+  mAB[0] = new RooFormulaVar("mAOSRefit", "sqrt( TMath::Max(1e-15, pow(@0+@4,2)-pow(@1+@5,2)-pow(@2+@6,2)-pow(@3+@7,2)) )", mA_args);
+  mAB[1] = new RooFormulaVar("mBOSRefit", "sqrt( TMath::Max(1e-15, pow(@0+@4,2)-pow(@1+@5,2)-pow(@2+@6,2)-pow(@3+@7,2)) )", mB_args);
+  mAB[2] = new RooFormulaVar("mASSRefit", "sqrt( TMath::Max(1e-15, pow(@0+@4,2)-pow(@1+@5,2)-pow(@2+@6,2)-pow(@3+@7,2)) )", mAp_args);
+  mAB[3] = new RooFormulaVar("mBSSRefit", "sqrt( TMath::Max(1e-15, pow(@0+@4,2)-pow(@1+@5,2)-pow(@2+@6,2)-pow(@3+@7,2)) )", mBp_args);
 
   // Variables integrated over
   // Should be re-written in terms of pT, lambda and phi at some point...
@@ -270,10 +284,6 @@ void HMassConstraint::constructPdfFactory(){
     pdfFactory->parameters,
     Vdecay1, Vdecay2
     );
-
-#if hmc_debug==1
-  for (int iZ=0; iZ<2; iZ++) simpleBWPDF[iZ] = new RooGenericPdf(Form("Z%i_simpleBWPDF", iZ+1), "2*@0/( (@0**2-@1**2)**2 + (@1*@2)**2 )", RooArgList(*(m[iZ]), *((pdfFactory->parameters).mZ), *((pdfFactory->parameters).gamZ)));
-#endif
 }
 void HMassConstraint::constructConstraintPdfs(){
   RooArgList constraints;
@@ -302,27 +312,33 @@ void HMassConstraint::constructConstraintPdfs(){
       constraints.add(*(gausConstraintsPDF[iZ][iferm][1]));
     }
   }
-  auxilliaryConstraintsPDF = new RooGenericPdf("auxilliaryConstraintsPDF", "@0*@1*@2", RooArgList(*(beta_Vdaughter[0]), *(beta_Vdaughter[1]), *massCuts)); // Will need to add m1, m2 cuts here as well!
-  //constraints.add(*(auxilliaryConstraintsPDF));
 
+  RooArgList massCuts_args;
+  massCuts_args.add(*(mAB[0])); // @0
+  massCuts_args.add(*(mAB[1])); // @1
+  massCuts_args.add(*mFFOScut); // @2
+  massCuts_args.add(*(mAB[2])); // @3
+  massCuts_args.add(*(mAB[3])); // @4
+  massCuts_args.add(*mFFSScut); // @5
+  massCuts_args.add(*(m[0])); // @6
+  massCuts_args.add(*m1lowcut); // @7
+  massCuts_args.add(*m1highcut); // @8
+  massCuts_args.add(*(m[1])); // @9
+  massCuts_args.add(*m2lowcut); // @10
+  massCuts_args.add(*m2highcut); // @11
+  massCuts = new RooFormulaVar("mABCutParameterization", "( (@0>=@2 && @1>=@2  &&  @3>=@5 && @4>=@5  &&  @6>=@7 && @6<=@8  &&  @9>=@10 && @9<=@11) ? 1. : 1.e-15)", massCuts_args);
+  auxilliaryConstraintsPDF = new RooGenericPdf("auxilliaryConstraintsPDF", "@0*@1*@2", RooArgList(*(beta_Vdaughter[0]), *(beta_Vdaughter[1]), *massCuts));
+
+  constraints.add(*(auxilliaryConstraintsPDF));
   constraints.add(*(DiracDeltaPDF));
-
-  //TEST
   constraintsPDF = new RooProdPdf("constraintsPDF", "constraintsPDF", constraints);
-  //constraintsPDF = new RooProdPdf("constraintsPDF", "constraintsPDF", RooArgList(*varOne, *auxilliaryConstraintsPDF));
-  //constraintsPDF = new RooProdPdf("constraintsPDF", "constraintsPDF", RooArgList(*varOne, *varOne));
 }
 void HMassConstraint::constructCompoundPdf(){
   RooArgList pdfList(*spinPDF, *constraintsPDF);
   PDF = new RooProdPdf("HMassConstraint_PDF", "HMassConstraint_PDF", pdfList);
 
-//#if hmc_debug==1
-//  RooArgList fastpdfList(*(simpleBWPDF[0]), *(simpleBWPDF[1]), *constraintsPDF);
-//  fastPDF = new RooProdPdf("HMassConstraint_FastPDF", "HMassConstraint_FastPDF", fastpdfList);
-//#else
   RooArgList fastpdfList(*bwProdPDF, *constraintsPDF);
   fastPDF = new RooProdPdf("HMassConstraint_FastPDF", "HMassConstraint_FastPDF", fastpdfList);
-//#endif
 }
 
 void HMassConstraint::destroyVariables(){
@@ -337,8 +353,7 @@ void HMassConstraint::destroyVariables(){
   deletePtr(Phi1);
   deletePtr(Y);
 
-  deletePtr(massCuts);
-  for (int iZ=1; iZ>=0; iZ--) deletePtr(mAB[iZ]);
+  for (int iZ=3; iZ>=0; iZ--) deletePtr(mAB[iZ]);
 
   deletePtr(m[2]);
   for (int iZ=1; iZ>=0; iZ--){
@@ -392,9 +407,12 @@ void HMassConstraint::destroyVariables(){
     }
   }
 
-  deletePtr(m1cut);
-  deletePtr(m2cut);
-  deletePtr(mFFcut);
+  deletePtr(m1highcut);
+  deletePtr(m2highcut);
+  deletePtr(m1lowcut);
+  deletePtr(m2lowcut);
+  deletePtr(mFFOScut);
+  deletePtr(mFFSScut);
 
   deletePtr(varOne);
   deletePtr(varZero);
@@ -413,11 +431,6 @@ void HMassConstraint::destroyDeltaFunctions(){
   }
 }
 void HMassConstraint::destroyPdfFactory(){
-  // Delete test PDF if it exists.
-#if hmc_debug==1
-  for (int iZ=1; iZ>=0; iZ--) deletePtr(simpleBWPDF[iZ]);
-#endif
-
   // Delete the bwProdPDF first since the measurables and parameters come from the pdfFactory
   deletePtr(bwProdPDF);
 
@@ -429,6 +442,7 @@ void HMassConstraint::destroyPdfFactory(){
 void HMassConstraint::destroyConstraintPdfs(){
   deletePtr(constraintsPDF);
   deletePtr(auxilliaryConstraintsPDF);
+  deletePtr(massCuts);
   for (int iZ=1; iZ>=0; iZ--){
     for (int iferm=1; iferm>=0; iferm--){
       for (int ifsr=1; ifsr>=0; ifsr--) deletePtr(gausConstraintsPDF[iZ][iferm][ifsr]);
@@ -467,19 +481,31 @@ void HMassConstraint::setPtEtaCuts(
   // Actual setting of ranges is done per-event
 }
 void HMassConstraint::setM1M2Cuts(
-  Double_t m1cut_,
-  Double_t m2cut_,
-  Double_t mFFcut_
+  Double_t m1lowcut_,
+  Double_t m2lowcut_,
+  Double_t m1highcut_,
+  Double_t m2highcut_,
+  Double_t mFFOScut_,
+  Double_t mFFSScut_
   ){
-  m1cut->setConstant(false);
-  m2cut->setConstant(false);
-  mFFcut->setConstant(false);
-  m1cut->setVal(m1cut_);
-  m2cut->setVal(m2cut_);
-  mFFcut->setVal(mFFcut_);
-  m1cut->setConstant(true);
-  m2cut->setConstant(true);
-  mFFcut->setConstant(true);
+  m1lowcut->setConstant(false);
+  m2lowcut->setConstant(false);
+  m1highcut->setConstant(false);
+  m2highcut->setConstant(false);
+  mFFOScut->setConstant(false);
+  mFFSScut->setConstant(false);
+  if (m1lowcut_>=0.) m1lowcut->setVal(m1lowcut_); else m1lowcut->setVal(0.);
+  if (m2lowcut_>=0.) m2lowcut->setVal(m2lowcut_); else m2lowcut->setVal(0.);
+  if (m1highcut_>=0.) m1highcut->setVal(m1highcut_); else m1highcut->setVal(sqrts);
+  if (m2highcut_>=0.) m2highcut->setVal(m2highcut_); else m2highcut->setVal(sqrts);
+  if (mFFOScut_>=0.) mFFOScut->setVal(mFFOScut_); else mFFOScut->setVal(0.);
+  if (mFFSScut_>=0.) mFFSScut->setVal(mFFSScut_); else mFFSScut->setVal(0.);
+  m1lowcut->setConstant(true);
+  m2lowcut->setConstant(true);
+  m1highcut->setConstant(true);
+  m2highcut->setConstant(true);
+  mFFOScut->setConstant(true);
+  mFFSScut->setConstant(true);
 }
 
 
@@ -983,6 +1009,10 @@ void HMassConstraint::addDaughters(std::vector<pair<const reco::Candidate*, cons
           if (FermFSRType!=0 && !fixAll){
             sortGetCovarianceMatrix(coefMat_fsr, fermion);
 
+#if hmc_debug==1
+            cout << "HMassConstraint::addDaughters : Daughter " << iZ << " / " << iferm << " FSR input covariance matrix:" << endl;
+            for (int ix=0; ix<3; ix++){ for (int iy=0; iy<3; iy++) cout << coefMat_fsr[3*ix+iy] << '\t'; cout << endl; }
+#endif
             if (coefMat_fsr[3*0+0]==0. && coefMat_fsr[3*0+1]==0. && coefMat_fsr[3*0+2]==0.) pT_fsr[iZ][iferm]->setConstant(true);
             if (coefMat_fsr[3*1+1]==0. && coefMat_fsr[3*1+1]==0. && coefMat_fsr[3*1+2]==0.) lambda_fsr[iZ][iferm]->setConstant(true);
             if (coefMat_fsr[3*2+2]==0. && coefMat_fsr[3*1+2]==0. && coefMat_fsr[3*2+2]==0.) phi_fsr[iZ][iferm]->setConstant(true);
@@ -1088,7 +1118,8 @@ void HMassConstraint::addDaughters(std::vector<pair<const reco::Candidate*, cons
 
 #if hmc_debug==1
   cout << "=== SUMMARY OF FINAL STATES ===" << endl;
-  cout << "| Fermions |" << endl;
+
+  cout << "|| Fermions ||" << endl;
   for (int iZ=0; iZ<2; iZ++){
     for (int iferm=0; iferm<2; iferm++){
       cout << "Z" << iZ << " daughter " << iferm;
@@ -1099,6 +1130,11 @@ void HMassConstraint::addDaughters(std::vector<pair<const reco::Candidate*, cons
       cout << "(pT,lambda,phi,m) = ( ";
       cout << pT_ferm[iZ][iferm]->getVal() << " " << lambda_ferm[iZ][iferm]->getVal() << " " << phi_ferm[iZ][iferm]->getVal() << " " << massbar_ferm[iZ][iferm]->getVal() << " )";
       cout << endl;
+    }
+  }
+  cout << "|| FSR ||" << endl;
+  for (int iZ=0; iZ<2; iZ++){
+    for (int iferm=0; iferm<2; iferm++){
       cout << "Z" << iZ << " daughter " << iferm << " FSR";
       cout << " ";
       cout << "(px,py,pz,E) = ( ";
@@ -1107,6 +1143,11 @@ void HMassConstraint::addDaughters(std::vector<pair<const reco::Candidate*, cons
       cout << "(pT,lambda,phi,m) = ( ";
       cout << pT_fsr[iZ][iferm]->getVal() << " " << lambda_fsr[iZ][iferm]->getVal() << " " << phi_fsr[iZ][iferm]->getVal() << " " << 0 << " )";
       cout << endl;
+    }
+  }
+  cout << "|| Fermion + FSR ||" << endl;
+  for (int iZ=0; iZ<2; iZ++){
+    for (int iferm=0; iferm<2; iferm++){
       cout << "Z" << iZ << " daughter " << iferm << " sum";
       cout << " ";
       cout << "(px,py,pz,E,m) = ( ";
@@ -1114,16 +1155,26 @@ void HMassConstraint::addDaughters(std::vector<pair<const reco::Candidate*, cons
       cout << endl;
     }
   }
-  for (int iZ=0; iZ<2; iZ++) cout << "beta(" << iZ+1 << ") = " << beta_Vdaughter[iZ]->getVal() << endl;
-  for (int iZ=0; iZ<2; iZ++) cout << "mAB(" << iZ+1 << ") = " << mAB[iZ]->getVal() << endl;
-  for (int iZ=0; iZ<2; iZ++) cout << "m" << iZ+1 << " = " << m[iZ]->getVal() << endl;
-  cout << "m12 = " << m[2]->getVal() << endl;
+  cout << "|| V1/V2 functions ||" << endl;
+  for (int iZ=0; iZ<2; iZ++) cout << "beta(V" << iZ+1 << ") = " << beta_Vdaughter[iZ]->getVal() << endl;
+  for (int iZ=0; iZ<2; iZ++) cout << "mAB-OS(V" << iZ+1 << ") = " << mAB[iZ]->getVal() << endl;
+  for (int iZ=0; iZ<2; iZ++) cout << "mAB-SS(V" << iZ+1 << ") = " << mAB[iZ+2]->getVal() << endl;
+  for (int iZ=0; iZ<2; iZ++) cout << "mV" << iZ+1 << " = " << m[iZ]->getVal() << endl;
+  cout << "mV1V2 = " << m[2]->getVal() << endl;
+
+  cout << "===============================" << endl;
 #endif
 }
 
 void HMassConstraint::fitTo(std::vector<pair<const reco::Candidate*, const pat::PFParticle*>>& FermionWithFSR){
+#if hmc_debug==1
+  cout << "\n\nHMassConstraint::fitTo is called." << endl;
+#endif
   addDaughters(FermionWithFSR);
   fit();
+#if hmc_debug==1
+  cout << "HMassConstraint::fitTo is terminating.\n\n" << endl;
+#endif
 }
 RooArgSet HMassConstraint::getDataVariables() const{
   RooArgSet data_args;
@@ -1163,9 +1214,9 @@ RooDataSet* HMassConstraint::getDataset() const{
 }
 void HMassConstraint::fit(){
 #if hmc_debug==1
-  //if (!(pdgid_ferm[0][0]==13 || pdgid_ferm[0][1]==13 || pdgid_ferm[1][0]==13 || pdgid_ferm[1][1]==13)) return;
   cout << "Begin HMassConstraint::fit()" << endl;
 #endif
+
   // Get the data to fit
   RooDataSet* data = getDataset();
 
@@ -1747,7 +1798,7 @@ void HMassConstraint::setInverseCovarianceMatrix(Int_t iZ, Int_t iferm, Int_t fs
   if (fsrindex==0){ for (int i=0; i<9; i++){ invcov_ferm[iZ][iferm][i]->setConstant(false); invcov_ferm[iZ][iferm][i]->setVal(momCov[i]); invcov_ferm[iZ][iferm][i]->setConstant(true); } }
   else{ for (int i=0; i<9; i++){ invcov_fsr[iZ][iferm][i]->setConstant(false); invcov_fsr[iZ][iferm][i]->setVal(momCov[i]); invcov_fsr[iZ][iferm][i]->setConstant(true); } }
 #if hmc_debug==1
-  cout << "Inverse of the covariance matrix for Z" << iZ << " daughter " << iferm << " is:" << endl;
+  cout << "Inverse of the covariance matrix for Z" << iZ+1 << " daughter " << iferm+1 << " is:" << endl;
   if (fsrindex==0){
     for (int i=0; i<3; i++){
       for (int j=0; j<3; j++) cout <<  invcov_ferm[iZ][iferm][3*i+j]->getVal() << '\t';
