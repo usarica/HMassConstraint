@@ -246,7 +246,10 @@ Double_t RooSpinZero_7DComplex_withAccep_ggH::evaluate() const{
   Double_t epsilon=1e-15;
   Double_t m1_=m1; if (Vdecay1==RooSpin::kVdecayType_GammaOnshell) m1_=0;
   Double_t m2_=m2; if (Vdecay2==RooSpin::kVdecayType_GammaOnshell) m2_=0;
-  if (isZZ/* && Vdecay1==Vdecay2*/) {
+
+  //cout << "Begin RooSpinZero_7DComplex_withAccep_ggH::evaluate with m1 = " << m1_ << " and m2 = " << m2_ << " and m12 = " << m12 << endl;
+
+  if (isZZ && Vdecay1==Vdecay2) {
     if ((m1_+m2_) > m12 || (fabs(m2_-mV)<fabs(m1_-mV) && Vdecay2!=RooSpin::kVdecayType_GammaOnshell) || (m2_ <= 0. && Vdecay2!=RooSpin::kVdecayType_GammaOnshell) || (m1_ <= 0. && Vdecay1!=RooSpin::kVdecayType_GammaOnshell)) return epsilon;
   }
   else if ((m1_+m2_) > m12 || ((m2_ <= 0. || m1_ <= 0.) && Vdecay1!=RooSpin::kVdecayType_GammaOnshell && Vdecay2!=RooSpin::kVdecayType_GammaOnshell)) return epsilon;
@@ -258,6 +261,8 @@ Double_t RooSpinZero_7DComplex_withAccep_ggH::evaluate() const{
     if (Vdecay2==RooSpin::kVdecayType_GammaOnshell) code *= prime_h2;
     if (Vdecay1==RooSpin::kVdecayType_GammaOnshell && Vdecay2==RooSpin::kVdecayType_GammaOnshell) code *= prime_Phi1;
   }
+
+  //cout << "RooSpinZero_7DComplex_withAccep_ggH::evaluate code = " << code << endl;
 
   Double_t betaValSq = (1.-(pow(m1_-m2_, 2)/pow(m12, 2)))*(1.-(pow(m1_+m2_, 2)/pow(m12, 2)));
   if (betaValSq<0) return epsilon;
@@ -299,17 +304,35 @@ Double_t RooSpinZero_7DComplex_withAccep_ggH::evaluate() const{
       << "Ammpp=" << val_Amp << '\t'
       << endl;
   }
+
+  //cout << "End RooSpinZero_7DComplex_withAccep_ggH::evaluate with result = " << value << endl;
+
   return value;
 }
 
 Int_t RooSpinZero_7DComplex_withAccep_ggH::getAnalyticalIntegral(RooArgSet& allVars, RooArgSet& analVars, const char* /*rangeName*/) const{
   Int_t code = intCodeStart;
+  /*
+  cout << "Begin RooSpinZero_7DComplex_withAccep_ggH::getAnalyticalIntegral (initial code=" << code << ")" << endl;
+  cout << "\tInitial allVars : " << endl;
+  allVars.Print("v");
+  cout << "\tInitial analVars: " << endl;
+  analVars.Print("v");
+  */
   if (checkFundamentalType(h1)){ if (matchArgs(allVars, analVars, h1) || Vdecay1==RooSpin::kVdecayType_GammaOnshell) code *= prime_h1; }
   if (checkFundamentalType(h2)){ if (matchArgs(allVars, analVars, h2) || Vdecay2==RooSpin::kVdecayType_GammaOnshell) code *= prime_h2; }
   if (checkFundamentalType(hs)){ if (matchArgs(allVars, analVars, hs)) code *= prime_hs; }
   if (checkFundamentalType(Phi)){ if (matchArgs(allVars, analVars, Phi) || Vdecay1==RooSpin::kVdecayType_GammaOnshell || Vdecay2==RooSpin::kVdecayType_GammaOnshell) code *= prime_Phi; }
   if (checkFundamentalType(Phi1)){ if (matchArgs(allVars, analVars, Phi1) || (Vdecay1==RooSpin::kVdecayType_GammaOnshell && Vdecay2==RooSpin::kVdecayType_GammaOnshell)) code *= prime_Phi1; }
   if (code==1) code=0;
+  /*
+  cout << "\tFinal allVars: " << endl;
+  allVars.Print("v");
+  cout << "\tFinal analVars: " << endl;
+  analVars.Print("v");
+  cout << "\tCode: " << code << endl;
+  cout << "End RooSpinZero_7DComplex_withAccep_ggH::getAnalyticalIntegral." << endl;
+  */
   return code;
 }
 Double_t RooSpinZero_7DComplex_withAccep_ggH::analyticalIntegral(Int_t code, const char* /*rangeName*/) const{
@@ -319,7 +342,12 @@ Double_t RooSpinZero_7DComplex_withAccep_ggH::analyticalIntegral(Int_t code, con
   Double_t epsilon=1e-10;
   Double_t m1_=m1; if (Vdecay1==RooSpin::kVdecayType_GammaOnshell) m1_=0;
   Double_t m2_=m2; if (Vdecay2==RooSpin::kVdecayType_GammaOnshell) m2_=0;
-  if (isZZ/* && Vdecay1==Vdecay2*/) {
+
+  //cout << "Begin RooSpinZero_7DComplex_withAccep_ggH::analyticalIntegral with m1 = " << m1_ << " and m2 = " << m2_ << " and m12 = " << m12 << " and code = " << code << endl;
+  //cout << "\tm1 (" << (m1.absArg())->GetName() << ") args:" << endl;
+  //(m1.absArg())->Print("v");
+
+  if (isZZ && Vdecay1==Vdecay2) {
     if ((m1_+m2_) > m12 || (fabs(m2_-mV)<fabs(m1_-mV) && Vdecay2!=RooSpin::kVdecayType_GammaOnshell) || (m2_ <= 0. && Vdecay2!=RooSpin::kVdecayType_GammaOnshell) || (m1_ <= 0. && Vdecay1!=RooSpin::kVdecayType_GammaOnshell)) return epsilon;
   }
   else if ((m1_+m2_) > m12 || ((m2_ <= 0. || m1_ <= 0.) && Vdecay1!=RooSpin::kVdecayType_GammaOnshell && Vdecay2!=RooSpin::kVdecayType_GammaOnshell)) return epsilon;
@@ -364,6 +392,9 @@ Double_t RooSpinZero_7DComplex_withAccep_ggH::analyticalIntegral(Int_t code, con
       << "Ammpp=" << val_Amp << '\t'
       << endl;
   }
+
+  //cout << "End RooSpinZero_7DComplex_withAccep_ggH::analyticalIntegral with result = " << value << endl;
+
   return value;
 }
 

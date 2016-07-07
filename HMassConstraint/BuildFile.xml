@@ -40,6 +40,7 @@
 <use name="histfactory"/>
 
 <Flags CPPFLAGS="-Wno-error=unused-variable" />
+<Flags CFLAGS="-Wno-error=unused-variable" />
 
 <export>
     <lib   name="1"/>

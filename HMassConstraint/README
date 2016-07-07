@@ -1,0 +1,30 @@
+HMassConstraint package:
+Authors: T. Cheng, H. Mei, U. Sarica, D. Sperka
+
+==============================================================================================
+To initialize the fitter, do (e.g. ZZ->4l)
+
+hmassconstraint = new HMassConstraint(13., RooSpin::kVdecayType_Zll, RooSpin::kVdecayType_Zll)
+==============================================================================================
+Fit momentum strategy to use pTs, eta or phis can be set via
+
+setFitMomentumStrategy(HMassConstraint::FitMomentumStrategy fitMomStrategy_)
+
+and the fit VV strategy to use V1, V2 daughters via
+
+setFitVVStrategy(HMassConstraint::FitVVStrategy fitVVStrategy_)
+
+The available strategies are in HMassConstraint.h
+==============================================================================================
+The functions
+
+setJECUserFloatString(TString jecString_)
+setMuonKalmanCorrectedPtErrorString(TString kalmanMuPtString_)
+
+set te strings to use in order to get userFloats. The former is for obtaining the JEC uncertainties in jets and the latter for obtaining the corrected pT uncertaintiy in muons after Kalman fit is applied (+ smearing in MC).
+These string are set to jec_unc and correctedPtError by default, but depending on te framework, they might need to be reset as well.
+
+
+
+
+

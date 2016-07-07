@@ -17,6 +17,7 @@
 #include "RooXYChi2Var.h"
 #include "RooChi2Var.h"
 #include "RooRealIntegral.h"
+#include "TIterator.h"
 #include "Math/Minimizer.h"
 
 
@@ -49,6 +50,7 @@ HMassConstraint::HMassConstraint(
   setFitMomentumStrategy(); // Set default momentum strategy
   setFitVVStrategy(); // Set default VV strategy
   setJECUserFloatString(); // Set JEC uncertainty default string
+  setMuonKalmanCorrectedPtErrorString(); // Set string to obtain a userFloat for the corrected pT error on muons after Kalman fit (+ smearing in MC)
 
   setPtEtaCuts(); // Set default cuts on pT, eta and phi of leptons, jets and FSR. Note the the cut targets are numbers!
   constructVariables();
@@ -284,9 +286,51 @@ void HMassConstraint::constructPdfFactory(){
     pdfFactory->parameters,
     Vdecay1, Vdecay2
     );
+
+  simpleBWPDF = new RooGenericPdf(
+    "SimpleBreitWignerPDF", "1/( pow(pow(@0, 2)-pow(@1, 2), 2)+pow(@1*@2, 2) )",
+    RooArgSet(*(pdfFactory->measurables.m1), *(pdfFactory->parameters.mZ), *(pdfFactory->parameters.gamZ))
+    );
+
+#if hmc_debug==1
+  cout << "spinPDF: " << endl;
+  spinPDF->Print("v");
+  RooArgSet* pdfPars = spinPDF->getParameters((RooArgSet*)0, true);
+  TIterator* parIter = pdfPars->createIterator();
+  RooAbsArg* thePar;
+  while ((thePar = (RooAbsArg*)parIter->Next())){
+    cout << thePar->GetName() << endl;
+  }
+  cout << endl;
+  delete parIter;
+  delete pdfPars;
+
+  cout << "bwProdPDF: " << endl;
+  bwProdPDF->Print("v");
+  pdfPars = bwProdPDF->getParameters((RooArgSet*)0, true);
+  parIter = pdfPars->createIterator();
+  while ((thePar = (RooAbsArg*)parIter->Next())){
+    cout << thePar->GetName() << endl;
+  }
+  cout << endl;
+  delete parIter;
+  delete pdfPars;
+
+  cout << "SimpleBWPDF: " << endl;
+  simpleBWPDF->Print("v");
+  pdfPars = simpleBWPDF->getParameters((RooArgSet*)0, true);
+  parIter = pdfPars->createIterator();
+  while ((thePar = (RooAbsArg*)parIter->Next())){
+    cout << thePar->GetName() << endl;
+  }
+  cout << endl;
+  delete parIter;
+  delete pdfPars;
+#endif
 }
 void HMassConstraint::constructConstraintPdfs(){
   RooArgList constraints;
+  /*
   for (int iZ=0; iZ<2; iZ++){
     for (int iferm=0; iferm<2; iferm++){
       RooArgList vars_ferm, means_ferm, me_ferm;
@@ -312,6 +356,35 @@ void HMassConstraint::constructConstraintPdfs(){
       constraints.add(*(gausConstraintsPDF[iZ][iferm][1]));
     }
   }
+  */
+  for (int iZ=0; iZ<2; iZ++){
+    for (int iferm=0; iferm<2; iferm++){
+      RooArgList vars_ferm, means_ferm, me_ferm;
+      vars_ferm.add(*(pT_ferm[iZ][iferm]));
+      vars_ferm.add(*(lambda_ferm[iZ][iferm]));
+      vars_ferm.add(*(phi_ferm[iZ][iferm]));
+      means_ferm.add(*(pTobs_ferm[iZ][iferm]));
+      means_ferm.add(*(lambdaobs_ferm[iZ][iferm]));
+      means_ferm.add(*(phiobs_ferm[iZ][iferm]));
+      for (int im=0; im<9; im++) me_ferm.add(*(invcov_ferm[iZ][iferm][im]));
+      gausConstraintsPDF[iZ][iferm][0] = new RooGaussianMomConstraint(Form("gausConstraintsPDF_Z%iFermion%i", iZ+1, iferm+1), Form("gausConstraintsPDF_Z%iFermion%i", iZ+1, iferm+1), vars_ferm, means_ferm, me_ferm, RooGaussianMomConstraint::kRhoLambdaPhi);
+      //gausConstraintsPDF[iZ][iferm][0] = new RooGaussian(Form("gausConstraintsPDF_Z%iFermion%i", iZ+1, iferm+1), Form("gausConstraintsPDF_Z%iFermion%i", iZ+1, iferm+1), *(pT_ferm[iZ][iferm]), *(pTobs_ferm[iZ][iferm]), *(invcov_ferm[iZ][iferm][0]));
+      constraints.add(*(gausConstraintsPDF[iZ][iferm][0]));
+      //if (iZ==0){ constraints.add(*(gausConstraintsPDF[iZ][iferm][0])); gausConstraintsPDF[iZ][iferm][0]->Print("v"); }
+
+      RooArgList vars_fsr, means_fsr, me_fsr;
+      vars_fsr.add(*(pT_fsr[iZ][iferm]));
+      vars_fsr.add(*(lambda_fsr[iZ][iferm]));
+      vars_fsr.add(*(phi_fsr[iZ][iferm]));
+      means_fsr.add(*(pTobs_fsr[iZ][iferm]));
+      means_fsr.add(*(lambdaobs_fsr[iZ][iferm]));
+      means_fsr.add(*(phiobs_fsr[iZ][iferm]));
+      for (int im=0; im<9; im++) me_fsr.add(*(invcov_fsr[iZ][iferm][im]));
+      gausConstraintsPDF[iZ][iferm][1] = new RooGaussianMomConstraint(Form("gausConstraintsPDF_Z%iFermion%iFSR", iZ+1, iferm+1), Form("gausConstraintsPDF_Z%iFermion%iFSR", iZ+1, iferm+1), vars_fsr, means_fsr, me_fsr, RooGaussianMomConstraint::kRhoLambdaPhi);
+      //gausConstraintsPDF[iZ][iferm][1] = new RooGaussian(Form("gausConstraintsPDF_Z%iFermion%iFSR", iZ+1, iferm+1), Form("gausConstraintsPDF_Z%iFermion%iFSR", iZ+1, iferm+1), *(pT_fsr[iZ][iferm]), *(pTobs_fsr[iZ][iferm]), *(invcov_fsr[iZ][iferm][0]));
+      constraints.add(*(gausConstraintsPDF[iZ][iferm][1]));
+    }
+  }
 
   RooArgList massCuts_args;
   massCuts_args.add(*(mAB[0])); // @0
@@ -330,10 +403,11 @@ void HMassConstraint::constructConstraintPdfs(){
   auxilliaryConstraintsPDF = new RooGenericPdf("auxilliaryConstraintsPDF", "@0*@1*@2", RooArgList(*(beta_Vdaughter[0]), *(beta_Vdaughter[1]), *massCuts));
 
   constraints.add(*(auxilliaryConstraintsPDF));
-  constraints.add(*(DiracDeltaPDF));
+  //constraints.add(*(DiracDeltaPDF));
   constraintsPDF = new RooProdPdf("constraintsPDF", "constraintsPDF", constraints);
 }
 void HMassConstraint::constructCompoundPdf(){
+  //RooArgList pdfList(*simpleBWPDF, *constraintsPDF);
   RooArgList pdfList(*spinPDF, *constraintsPDF);
   PDF = new RooProdPdf("HMassConstraint_PDF", "HMassConstraint_PDF", pdfList);
 
@@ -431,7 +505,8 @@ void HMassConstraint::destroyDeltaFunctions(){
   }
 }
 void HMassConstraint::destroyPdfFactory(){
-  // Delete the bwProdPDF first since the measurables and parameters come from the pdfFactory
+  // Delete the bwProdPDF and simpleBWPDF first since the measurables and parameters come from the pdfFactory
+  deletePtr(simpleBWPDF);
   deletePtr(bwProdPDF);
 
   // Only one of these is true; no need to delete pdfFactory since it is simply a mother-pointer to either of these.
@@ -885,6 +960,19 @@ void HMassConstraint::addDaughters(std::vector<pair<const reco::Candidate*, cons
         pTobs_ferm[iZ][iferm]->setConstant(false);
         lambdaobs_ferm[iZ][iferm]->setConstant(false);
         phiobs_ferm[iZ][iferm]->setConstant(false);
+        if (abs(pdgid_ferm[iZ][iferm])==pdgEle){
+          pTobs_ferm[iZ][iferm]->setRange(pTcut_electron, sqrts);
+          lambdaobs_ferm[iZ][iferm]->setRange(-lambdacut_electron, lambdacut_electron);
+        }
+        else if (abs(pdgid_ferm[iZ][iferm])==pdgMu){
+          pTobs_ferm[iZ][iferm]->setRange(pTcut_muon, sqrts);
+          lambdaobs_ferm[iZ][iferm]->setRange(-lambdacut_muon, lambdacut_muon);
+        }
+        else if (abs(pdgid_ferm[iZ][iferm])==pdgJet){
+          pTobs_ferm[iZ][iferm]->setRange(pTcut_jet, sqrts);
+          lambdaobs_ferm[iZ][iferm]->setRange(-lambdacut_jet, lambdacut_jet);
+        }
+        phiobs_ferm[iZ][iferm]->setRange(-pi_val, pi_val);
         pTobs_ferm[iZ][iferm]->setVal(fermion->pt());
         lambdaobs_ferm[iZ][iferm]->setVal(piovertwo_val-fermion->theta());
         phiobs_ferm[iZ][iferm]->setVal(fermion->phi());
@@ -983,6 +1071,11 @@ void HMassConstraint::addDaughters(std::vector<pair<const reco::Candidate*, cons
           pTobs_fsr[iZ][iferm]->setConstant(false);
           lambdaobs_fsr[iZ][iferm]->setConstant(false);
           phiobs_fsr[iZ][iferm]->setConstant(false);
+
+          pTobs_fsr[iZ][iferm]->setRange(pTcut_fsr, sqrts);
+          lambdaobs_fsr[iZ][iferm]->setRange(-lambdacut_fsr, lambdacut_fsr);
+          phiobs_fsr[iZ][iferm]->setRange(-pi_val, pi_val);
+
           pTobs_fsr[iZ][iferm]->setVal(gamma->pt());
           lambdaobs_fsr[iZ][iferm]->setVal(piovertwo_val-gamma->theta());
           phiobs_fsr[iZ][iferm]->setVal(gamma->phi());
@@ -991,9 +1084,9 @@ void HMassConstraint::addDaughters(std::vector<pair<const reco::Candidate*, cons
           phiobs_fsr[iZ][iferm]->setConstant(true);
 
           // Set fsr ranges within the cuts and initialize
-          pT_fsr[iZ][iferm]->setConstant(false); pT_fsr[iZ][iferm]->setRange(0., sqrts); pT_fsr[iZ][iferm]->setVal(pTbar_fsr[iZ][iferm]->getVal());
+          pT_fsr[iZ][iferm]->setConstant(false); pT_fsr[iZ][iferm]->setRange(pTcut_fsr, sqrts); pT_fsr[iZ][iferm]->setVal(pTbar_fsr[iZ][iferm]->getVal());
           lambda_fsr[iZ][iferm]->setConstant(false); lambda_fsr[iZ][iferm]->setRange(-lambdacut_fsr, lambdacut_fsr); lambda_fsr[iZ][iferm]->setVal(lambdabar_fsr[iZ][iferm]->getVal());
-          phi_fsr[iZ][iferm]->setConstant(false); phi_fsr[iZ][iferm]->setRange(-piovertwo_val, piovertwo_val); phi_fsr[iZ][iferm]->setVal(phibar_fsr[iZ][iferm]->getVal());
+          phi_fsr[iZ][iferm]->setConstant(false); phi_fsr[iZ][iferm]->setRange(-pi_val, pi_val); phi_fsr[iZ][iferm]->setVal(phibar_fsr[iZ][iferm]->getVal());
           if (fixAll){
             pT_fsr[iZ][iferm]->setConstant(true);
             lambda_fsr[iZ][iferm]->setConstant(true);
@@ -1176,29 +1269,72 @@ void HMassConstraint::fitTo(std::vector<pair<const reco::Candidate*, const pat::
   cout << "HMassConstraint::fitTo is terminating.\n\n" << endl;
 #endif
 }
-RooArgSet HMassConstraint::getDataVariables() const{
-  RooArgSet data_args;
-  if (intCodeStart%RooSpin::prime_h1 != 0) data_args.add(*(h1));
-  if (intCodeStart%RooSpin::prime_h2 != 0) data_args.add(*(h2));
-  if (intCodeStart%RooSpin::prime_hs != 0) data_args.add(*(hs));
-  if (intCodeStart%RooSpin::prime_Phi != 0) data_args.add(*(Phi));
-  if (intCodeStart%RooSpin::prime_Phi1 != 0) data_args.add(*(Phi1));
-  //data_args.add(*(Y));
+void HMassConstraint::getDataVariables(RooArgSet* intVars, RooArgSet* condVars) const{
+  if (intVars!=0){
+    if (intCodeStart%RooSpin::prime_h1 != 0) intVars->add(*(h1));
+    if (intCodeStart%RooSpin::prime_h2 != 0) intVars->add(*(h2));
+    if (intCodeStart%RooSpin::prime_hs != 0) intVars->add(*(hs));
+    if (intCodeStart%RooSpin::prime_Phi != 0) intVars->add(*(Phi));
+    if (intCodeStart%RooSpin::prime_Phi1 != 0) intVars->add(*(Phi1));
+    //intVars->add(*(Y));
+  }
 
   for (int iZ=0; iZ<2; iZ++){
     for (int iferm=0; iferm<2; iferm++){
-      if (!pT_ferm[iZ][iferm]->isConstant()) data_args.add(*(pTobs_ferm[iZ][iferm]));
-      if (!lambda_ferm[iZ][iferm]->isConstant()) data_args.add(*(lambdaobs_ferm[iZ][iferm]));
-      if (!phi_ferm[iZ][iferm]->isConstant()) data_args.add(*(phiobs_ferm[iZ][iferm]));
-      if (!pT_fsr[iZ][iferm]->isConstant()) data_args.add(*(pTobs_fsr[iZ][iferm]));
-      if (!lambda_fsr[iZ][iferm]->isConstant()) data_args.add(*(lambdaobs_fsr[iZ][iferm]));
-      if (!phi_fsr[iZ][iferm]->isConstant()) data_args.add(*(phiobs_fsr[iZ][iferm]));
+      bool refitvarconst;
+
+      refitvarconst = pT_ferm[iZ][iferm]->isConstant();
+      if (!refitvarconst && intVars!=0){
+        pTobs_ferm[iZ][iferm]->setConstant(false);
+        intVars->add(*(pTobs_ferm[iZ][iferm]));
+      }
+      else if (refitvarconst && condVars!=0) condVars->add(*(pTobs_ferm[iZ][iferm]));
+
+      refitvarconst = lambda_ferm[iZ][iferm]->isConstant();
+      if (!refitvarconst && intVars!=0){
+        lambdaobs_ferm[iZ][iferm]->setConstant(false);
+        intVars->add(*(lambdaobs_ferm[iZ][iferm]));
+      }
+      else if (refitvarconst && condVars!=0) condVars->add(*(lambdaobs_ferm[iZ][iferm]));
+
+      refitvarconst = phi_ferm[iZ][iferm]->isConstant();
+      if (!refitvarconst && intVars!=0){
+        phiobs_ferm[iZ][iferm]->setConstant(false);
+        intVars->add(*(phiobs_ferm[iZ][iferm]));
+      }
+      else if (refitvarconst && condVars!=0) condVars->add(*(phiobs_ferm[iZ][iferm]));
+
+      refitvarconst = pT_fsr[iZ][iferm]->isConstant();
+      if (!refitvarconst && intVars!=0){
+        pTobs_fsr[iZ][iferm]->setConstant(false);
+        intVars->add(*(pTobs_fsr[iZ][iferm]));
+      }
+      else if (refitvarconst && condVars!=0) condVars->add(*(pTobs_fsr[iZ][iferm]));
+
+      refitvarconst = lambda_fsr[iZ][iferm]->isConstant();
+      if (!refitvarconst && intVars!=0){
+        lambdaobs_fsr[iZ][iferm]->setConstant(false);
+        intVars->add(*(lambdaobs_fsr[iZ][iferm]));
+      }
+      else if (refitvarconst && condVars!=0) condVars->add(*(lambdaobs_fsr[iZ][iferm]));
+
+      refitvarconst = phi_fsr[iZ][iferm]->isConstant();
+      if (!refitvarconst && intVars!=0){
+        phiobs_fsr[iZ][iferm]->setConstant(false);
+        intVars->add(*(phiobs_fsr[iZ][iferm]));
+      }
+      else if (refitvarconst && condVars!=0) condVars->add(*(phiobs_fsr[iZ][iferm]));
     }
   }
-  return data_args;
 }
-RooDataSet* HMassConstraint::getDataset() const{
-  RooArgSet data_args = getDataVariables();
+RooDataSet* HMassConstraint::getDataset(RooArgSet* condVars) const{
+  RooArgSet data_args;
+  RooArgSet cond_args;
+  getDataVariables(&data_args, &cond_args);
+  if (condVars!=0){
+    condVars->removeAll();
+    condVars->add(cond_args);
+  }
   RooDataSet* data = 0;
   if (data_args.getSize()<=15 && data_args.getSize()>0){
     data = new RooDataSet("fittedHdaughters", "", data_args);
@@ -1226,22 +1362,30 @@ void HMassConstraint::fit(){
     activePDF = fastPDF;
 #if hmc_debug==1
     cout << "HMassConstraint::fit: FastPDF option is active. The PDF being used is " << activePDF->GetName() << "." << endl;
-    activePDF->Print("v"); cout << endl;
 #endif
   }
   else{
     activePDF = PDF;
 #if hmc_debug==1
     cout << "HMassConstraint::fit: FastPDF option is not active. The PDF being used is " << activePDF->GetName() << "." << endl;
-    activePDF->Print("v"); cout << endl;
 #endif
   }
+#if hmc_debug==1
+  activePDF->Print("v");
+  RooArgSet* pdfPars = activePDF->getParameters((RooArgSet*)0, true);
+  TIterator* parIter = pdfPars->createIterator();
+  RooAbsArg* thePar;
+  while ((thePar = (RooAbsArg*)parIter->Next())) cout << thePar->GetName() << endl;
+  cout << endl;
+  delete parIter;
+  delete pdfPars;
+#endif
 
   // Conditional variables (i.e. m12)
   RooArgSet conditionals;
   conditionals.add(*(m[2]));
 
-  // Delete the fitResult in case it exists, just to avoid unwanted memory leaks.s
+  // Delete the fitResult in case it exists, just to avoid unwanted memory leaks.
   deletePtr(fitResult);
 
   // Hold the factory parameters tight!
@@ -1520,7 +1664,7 @@ void HMassConstraint::getCovarianceMatrix(double (&momCov)[9], const pat::Muon* 
 
   double pterr_uncorrected = particle->muonBestTrack()->ptError();
   double pterr = pterr_uncorrected;
-  if(particle->hasUserFloat("correctedPtError")) pterr = particle->userFloat("correctedPtError");
+  if (particle->hasUserFloat("correctedPtError")) pterr = particle->userFloat("correctedPtError");
   double correction = 1.;
   if (pterr_uncorrected!=0.) correction = pow(pterr/pterr_uncorrected, 2);
 

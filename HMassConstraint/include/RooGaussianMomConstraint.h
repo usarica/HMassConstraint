@@ -14,6 +14,10 @@
 #include <vector>
 #include "TMath.h"
 
+#ifndef rmg_debug
+#define rmg_debug 0
+#endif
+
 
 class RooGaussianMomConstraint : public RooAbsPdf {
 public:
@@ -25,7 +29,10 @@ public:
   enum CoordinatePrimes{
     prime_var1=2,
     prime_var2=3,
-    prime_var3=5
+    prime_var3=5,
+    prime_mean1=7,
+    prime_mean2=11,
+    prime_mean3=13
   };
 
   RooGaussianMomConstraint(){};
